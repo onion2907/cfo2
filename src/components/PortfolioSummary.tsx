@@ -5,11 +5,12 @@ import { formatCurrency } from '../utils/currency';
 
 interface PortfolioSummaryProps {
   metrics: PortfolioMetrics;
+  displayCurrency?: string;
 }
 
-const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ metrics }) => {
+const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ metrics, displayCurrency = 'USD' }) => {
   const formatAmount = (amount: number) => {
-    return formatCurrency(amount, 'USD'); // Portfolio summary in USD for now
+    return formatCurrency(amount, displayCurrency);
   };
 
   const formatPercentage = (percentage: number) => {

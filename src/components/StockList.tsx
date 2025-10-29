@@ -1,20 +1,33 @@
 import React, { useState } from 'react';
 import { Stock } from '../types/portfolio';
+import { ConvertedStock } from '../services/currencyConversion';
 import StockCard from './StockCard';
 import EditStockModal from './EditStockModal';
 import { PlusCircle } from 'lucide-react';
 
 interface StockListProps {
-  stocks: Stock[];
+  stocks: (Stock | ConvertedStock)[];
   onUpdateStock: (id: string, updatedStock: Partial<Stock>) => void;
   onRemoveStock: (id: string) => void;
+  displayCurrency?: string;
 }
 
-const StockList: React.FC<StockListProps> = ({ stocks, onUpdateStock, onRemoveStock }) => {
+const StockList: React.FC<StockListProps> = ({ stocks, onUpdateStock, onRemoveStock, displayCurrency }) => {
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
 
-  const handleEdit = (stock: Stock) => {
-    setEditingStock(stock);
+  const handleEdit = (stock: Stock | ConvertedStock) => {
+    // Convert ConvertedStock back to Stock for editing
+    const baseStock: Stock = {
+      id: stock.id,
+      symbol: stock.symbol,
+      name: stock.name,
+      shares: stock.shares,
+      purchasePrice: stock.purchasePrice,
+      currentPrice: stock.currentPrice,
+      purchaseDate: stock.purchaseDate,
+      currency: stock.currency
+    };
+    setEditingStock(baseStock);
   };
 
   const handleUpdate = (updatedStock: Partial<Stock>) => {

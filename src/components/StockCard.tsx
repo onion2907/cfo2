@@ -1,22 +1,31 @@
 import React from 'react';
 import { Stock } from '../types/portfolio';
+import { ConvertedStock } from '../services/currencyConversion';
 import { Edit2, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '../utils/currency';
 
 interface StockCardProps {
-  stock: Stock;
+  stock: Stock | ConvertedStock;
   onEdit: (stock: Stock) => void;
   onRemove: (id: string) => void;
 }
 
 const StockCard: React.FC<StockCardProps> = ({ stock, onEdit, onRemove }) => {
-  const currentValue = stock.shares * stock.currentPrice;
-  const costBasis = stock.shares * stock.purchasePrice;
-  const gainLoss = currentValue - costBasis;
+  // Check if it's a converted stock
+  const isConvertedStock = 'convertedPrice' in stock;
+  
+  const currentValue = isConvertedStock ? stock.convertedValue : stock.shares * stock.currentPrice;
+  const costBasis = isConvertedStock ? stock.convertedCostBasis : stock.shares * stock.purchasePrice;
+  const gainLoss = isConvertedStock ? stock.convertedGainLoss : currentValue - costBasis;
   const gainLossPercentage = (gainLoss / costBasis) * 100;
+  
+  const displayCurrency = isConvertedStock ? stock.displayCurrency : stock.currency;
+  const currentPrice = isConvertedStock ? stock.convertedPrice : stock.currentPrice;
+  const purchasePrice = isConvertedStock ? 
+    (stock.convertedCostBasis / stock.shares) : stock.purchasePrice;
 
   const formatAmount = (amount: number) => {
-    return formatCurrency(amount, stock.currency);
+    return formatCurrency(amount, displayCurrency);
   };
 
   const formatPercentage = (percentage: number) => {
@@ -41,7 +50,20 @@ const StockCard: React.FC<StockCardProps> = ({ stock, onEdit, onRemove }) => {
         </div>
         <div className="flex space-x-2">
           <button
-            onClick={() => onEdit(stock)}
+            onClick={() => {
+              // Convert ConvertedStock back to Stock for editing
+              const baseStock: Stock = {
+                id: stock.id,
+                symbol: stock.symbol,
+                name: stock.name,
+                shares: stock.shares,
+                purchasePrice: stock.purchasePrice,
+                currentPrice: stock.currentPrice,
+                purchaseDate: stock.purchaseDate,
+                currency: stock.currency
+              };
+              onEdit(baseStock);
+            }}
             className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors duration-200"
             title="Edit stock"
           >
@@ -66,12 +88,12 @@ const StockCard: React.FC<StockCardProps> = ({ stock, onEdit, onRemove }) => {
         
         <div className="flex justify-between">
           <span className="text-sm text-gray-600">Purchase Price</span>
-          <span className="text-sm font-medium">{formatAmount(stock.purchasePrice)}</span>
+          <span className="text-sm font-medium">{formatAmount(purchasePrice)}</span>
         </div>
         
         <div className="flex justify-between">
           <span className="text-sm text-gray-600">Current Price</span>
-          <span className="text-sm font-medium">{formatAmount(stock.currentPrice)}</span>
+          <span className="text-sm font-medium">{formatAmount(currentPrice)}</span>
         </div>
         
         <div className="flex justify-between">
