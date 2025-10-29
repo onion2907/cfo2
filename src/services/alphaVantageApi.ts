@@ -92,6 +92,7 @@ class AlphaVantageAPI {
     });
 
     try {
+      console.log(`Making API request to: ${url.toString()}`);
       const response = await fetch(url.toString());
       
       if (!response.ok) {
@@ -99,6 +100,8 @@ class AlphaVantageAPI {
       }
       
       const data = await response.json();
+      
+      console.log('API response:', data);
       
       // Check for API error messages
       if (data['Error Message']) {
@@ -112,6 +115,9 @@ class AlphaVantageAPI {
       return data;
     } catch (error) {
       console.error('Alpha Vantage API Error:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to reach Alpha Vantage API. This might be due to CORS restrictions or network issues.');
+      }
       throw error;
     }
   }
