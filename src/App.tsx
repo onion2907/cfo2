@@ -229,13 +229,13 @@ const App: React.FC = () => {
                 <span className="text-sm text-gray-600">Currency: ₹ INR</span>
               </div>
               <div className="flex items-center space-x-2">
-                {activeTab === 'transactions' && (
+                {(activeTab === 'holdings' || activeTab === 'transactions') && (
                   <button
                     onClick={handleAddTransaction}
                     className="btn-primary flex items-center space-x-2"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>Add Transaction</span>
+                    <span>Add Asset</span>
                   </button>
                 )}
                 {activeTab === 'liabilities' && (
@@ -277,7 +277,7 @@ const App: React.FC = () => {
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
             {[
               { id: 'balance-sheet', label: 'Balance Sheet', icon: DollarSign, count: null },
-              { id: 'holdings', label: 'Holdings', icon: TrendingUp, count: portfolio.holdings.length },
+              { id: 'holdings', label: 'Assets', icon: TrendingUp, count: portfolio.holdings.length },
               { id: 'transactions', label: 'Transactions', icon: Plus, count: portfolio.transactions.length },
               { id: 'liabilities', label: 'Liabilities', icon: CreditCard, count: liabilities.length }
             ].map((tab) => {

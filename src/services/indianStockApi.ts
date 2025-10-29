@@ -2,6 +2,20 @@
 // Focused on Indian stocks with INR currency
 
 const BASE_URL = 'https://api.indianstockmarket.com'; // Replace with actual API URL
+
+// Mock data for development
+const MOCK_STOCKS: IndianStockSearchResult[] = [
+  { symbol: 'RELIANCE', name: 'Reliance Industries Ltd', exchange: 'NSE', currentPrice: 2650.50, sector: 'Oil & Gas' },
+  { symbol: 'TCS', name: 'Tata Consultancy Services Ltd', exchange: 'NSE', currentPrice: 3850.25, sector: 'IT' },
+  { symbol: 'HDFC', name: 'HDFC Bank Ltd', exchange: 'NSE', currentPrice: 1580.75, sector: 'Banking' },
+  { symbol: 'INFY', name: 'Infosys Ltd', exchange: 'NSE', currentPrice: 1420.30, sector: 'IT' },
+  { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd', exchange: 'NSE', currentPrice: 920.45, sector: 'Banking' },
+  { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd', exchange: 'NSE', currentPrice: 2450.80, sector: 'FMCG' },
+  { symbol: 'ITC', name: 'ITC Ltd', exchange: 'NSE', currentPrice: 420.15, sector: 'FMCG' },
+  { symbol: 'SBIN', name: 'State Bank of India', exchange: 'NSE', currentPrice: 580.90, sector: 'Banking' },
+  { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd', exchange: 'NSE', currentPrice: 980.60, sector: 'Telecom' },
+  { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd', exchange: 'NSE', currentPrice: 3200.40, sector: 'Paints' }
+];
 const API_KEY = 'sk-live-6pnOC4qCbj10La77gSeqOHHMAOW55lU8mb2NDYVr';
 
 // Types for Indian Stock API
@@ -136,21 +150,11 @@ class IndianStockAPI {
   // Search for Indian stocks
   async searchStocks(query: string): Promise<IndianStockSearchResult[]> {
     try {
-      // Use trending stocks as search results for now
-      // In a real implementation, you'd have a dedicated search endpoint
-      const trending = await this.getTrendingStocks();
-      return trending
-        .filter(stock => 
-          stock.name.toLowerCase().includes(query.toLowerCase()) ||
-          stock.symbol.toLowerCase().includes(query.toLowerCase())
-        )
-        .map(stock => ({
-          symbol: stock.symbol,
-          name: stock.name,
-          exchange: stock.exchange,
-          currentPrice: stock.currentPrice,
-          marketCap: 0 // Would be populated from actual API
-        }));
+      // Use mock data for now
+      return MOCK_STOCKS.filter(stock => 
+        stock.name.toLowerCase().includes(query.toLowerCase()) ||
+        stock.symbol.toLowerCase().includes(query.toLowerCase())
+      );
     } catch (error) {
       console.error('Error searching Indian stocks:', error);
       return [];
@@ -195,24 +199,31 @@ class IndianStockAPI {
   // Get current stock quote
   async getStockQuote(symbol: string): Promise<IndianStockQuote | null> {
     try {
-      const data = await this.makeRequest<any>('/stock', { name: symbol });
+      // Use mock data for now
+      const mockStock = MOCK_STOCKS.find(stock => 
+        stock.symbol.toLowerCase() === symbol.toLowerCase()
+      );
       
-      return {
-        symbol: data.symbol || symbol,
-        name: data.name || symbol,
-        currentPrice: data.current_price || data.price || 0,
-        change: data.change || 0,
-        changePercent: data.change_percent || 0,
-        open: data.open || 0,
-        high: data.high || 0,
-        low: data.low || 0,
-        previousClose: data.previous_close || 0,
-        volume: data.volume || 0,
-        marketCap: data.market_cap || 0,
-        exchange: data.exchange || 'NSE',
-        sector: data.sector,
-        currency: 'INR'
-      };
+      if (mockStock) {
+        return {
+          symbol: mockStock.symbol,
+          name: mockStock.name,
+          currentPrice: mockStock.currentPrice || 0,
+          change: Math.random() * 100 - 50, // Random change for demo
+          changePercent: Math.random() * 10 - 5, // Random percentage for demo
+          open: (mockStock.currentPrice || 0) + Math.random() * 20 - 10,
+          high: (mockStock.currentPrice || 0) + Math.random() * 50,
+          low: (mockStock.currentPrice || 0) - Math.random() * 30,
+          previousClose: (mockStock.currentPrice || 0) + Math.random() * 20 - 10,
+          volume: Math.floor(Math.random() * 1000000),
+          marketCap: Math.floor(Math.random() * 1000000000000),
+          exchange: mockStock.exchange,
+          sector: mockStock.sector,
+          currency: 'INR'
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error fetching stock quote:', error);
       return null;

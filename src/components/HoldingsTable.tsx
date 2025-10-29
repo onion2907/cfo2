@@ -1,7 +1,7 @@
 import React from 'react';
 import { Holding } from '../types/portfolio';
 import { formatCurrency } from '../utils/currency';
-import { TrendingUp, TrendingDown, MoreHorizontal } from 'lucide-react';
+import { TrendingUp, TrendingDown, Edit2, Eye } from 'lucide-react';
 
 interface HoldingsTableProps {
   holdings: Holding[];
@@ -159,15 +159,17 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({
                   <div className="flex items-center justify-end space-x-2">
                     <button
                       onClick={() => onViewTransactions?.(holding)}
-                      className="text-indigo-600 hover:text-indigo-900 text-xs"
+                      className="text-indigo-600 hover:text-indigo-900 p-1"
+                      title="View Transactions"
                     >
-                      View Txns
+                      <Eye className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => onEditHolding?.(holding)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-600 hover:text-gray-900 p-1"
+                      title="Edit Holding"
                     >
-                      <MoreHorizontal className="h-4 w-4" />
+                      <Edit2 className="h-4 w-4" />
                     </button>
                   </div>
                 </td>
