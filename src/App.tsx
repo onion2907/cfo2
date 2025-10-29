@@ -242,7 +242,7 @@ const App: React.FC = () => {
                   handleEditTransaction(holdingTransactions[0]);
                 }
               }}
-              onViewTransactions={(holding) => {
+              onViewTransactions={() => {
                 setActiveTab('transactions');
               }}
             />
