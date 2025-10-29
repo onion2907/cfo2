@@ -92,6 +92,7 @@ class AlphaVantageAPI {
     });
 
     try {
+      console.log(`Making API request to: ${url.toString()}`);
       const response = await fetch(url.toString());
       
       if (!response.ok) {
@@ -99,6 +100,8 @@ class AlphaVantageAPI {
       }
       
       const data = await response.json();
+      
+      console.log('API response:', data);
       
       // Check for API error messages
       if (data['Error Message']) {
@@ -109,9 +112,16 @@ class AlphaVantageAPI {
         throw new Error('API call frequency limit reached. Please try again later.');
       }
       
+      if (data['Information'] && data['Information'].includes('rate limit')) {
+        throw new Error('API rate limit exceeded. Using fallback exchange rates.');
+      }
+      
       return data;
     } catch (error) {
       console.error('Alpha Vantage API Error:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to reach Alpha Vantage API. This might be due to CORS restrictions or network issues.');
+      }
       throw error;
     }
   }
@@ -252,15 +262,20 @@ class AlphaVantageAPI {
     // Check cache first
     const cached = this.exchangeRateCache.get(cacheKey);
     if (cached && (now - cached.timestamp) < this.CACHE_DURATION) {
+      console.log(`Using cached exchange rate: ${fromCurrency} to ${toCurrency} = ${cached.rate.rate}`);
       return cached.rate;
     }
 
     try {
+      console.log(`Fetching exchange rate from Alpha Vantage: ${fromCurrency} to ${toCurrency}`);
+      
       const data = await this.makeRequest<ExchangeRateResponse>({
         function: 'CURRENCY_EXCHANGE_RATE',
         from_currency: fromCurrency,
         to_currency: toCurrency
       });
+
+      console.log('Exchange rate API response:', data);
 
       if (!data['Realtime Currency Exchange Rate']) {
         throw new Error(`No exchange rate data found for ${fromCurrency} to ${toCurrency}`);
@@ -274,6 +289,8 @@ class AlphaVantageAPI {
         lastRefreshed: exchangeData['6. Last Refreshed']
       };
 
+      console.log(`Exchange rate fetched: ${rate.fromCurrency} to ${rate.toCurrency} = ${rate.rate}`);
+
       // Cache the result
       this.exchangeRateCache.set(cacheKey, { rate, timestamp: now });
 
@@ -286,12 +303,16 @@ class AlphaVantageAPI {
 
   async convertCurrency(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
     if (fromCurrency === toCurrency) {
+      console.log(`Same currency, no conversion needed: ${amount} ${fromCurrency}`);
       return amount;
     }
 
     try {
+      console.log(`Converting ${amount} ${fromCurrency} to ${toCurrency}`);
       const exchangeRate = await this.getExchangeRate(fromCurrency, toCurrency);
-      return amount * exchangeRate.rate;
+      const convertedAmount = amount * exchangeRate.rate;
+      console.log(`Conversion result: ${amount} ${fromCurrency} * ${exchangeRate.rate} = ${convertedAmount} ${toCurrency}`);
+      return convertedAmount;
     } catch (error) {
       console.error('Error converting currency:', error);
       throw new Error(`Failed to convert ${amount} ${fromCurrency} to ${toCurrency}`);

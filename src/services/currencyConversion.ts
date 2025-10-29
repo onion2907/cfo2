@@ -1,4 +1,5 @@
 import { alphaVantageAPI } from './alphaVantageApi';
+import { getFallbackExchangeRate } from './fallbackExchangeRates';
 import { Stock } from '../types/portfolio';
 
 export interface ConvertedStock extends Stock {
@@ -30,6 +31,8 @@ class CurrencyConversionService {
     // Convert each stock to the target currency
     for (const stock of stocks) {
       try {
+        console.log(`Converting ${stock.symbol} from ${stock.currency} to ${targetCurrency}`);
+        
         const convertedPrice = await alphaVantageAPI.convertCurrency(
           stock.currentPrice,
           stock.currency,
@@ -41,6 +44,8 @@ class CurrencyConversionService {
           stock.currency,
           targetCurrency
         );
+
+        console.log(`Conversion successful: ${stock.symbol} - Price: ${stock.currentPrice} ${stock.currency} -> ${convertedPrice} ${targetCurrency}`);
 
         const convertedValue = stock.shares * convertedPrice;
         const convertedCostBasis = stock.shares * convertedPurchasePrice;
@@ -59,18 +64,30 @@ class CurrencyConversionService {
         totalCost += convertedCostBasis;
       } catch (error) {
         console.error(`Failed to convert ${stock.symbol} from ${stock.currency} to ${targetCurrency}:`, error);
-        // Fallback: use original values if conversion fails
-        const convertedStock: ConvertedStock = {
+        
+        // Use fallback exchange rates
+        console.log(`Using fallback exchange rate for ${stock.symbol}`);
+        const fallbackRate = getFallbackExchangeRate(stock.currency, targetCurrency);
+        const convertedPrice = stock.currentPrice * fallbackRate;
+        const convertedPurchasePrice = stock.purchasePrice * fallbackRate;
+        
+        console.log(`Fallback conversion: ${stock.currentPrice} ${stock.currency} * ${fallbackRate} = ${convertedPrice} ${targetCurrency}`);
+
+        const convertedValue = stock.shares * convertedPrice;
+        const convertedCostBasis = stock.shares * convertedPurchasePrice;
+        const convertedGainLoss = convertedValue - convertedCostBasis;
+
+        convertedStocks.push({
           ...stock,
-          convertedPrice: stock.currentPrice,
-          convertedValue: stock.shares * stock.currentPrice,
-          convertedCostBasis: stock.shares * stock.purchasePrice,
-          convertedGainLoss: (stock.shares * stock.currentPrice) - (stock.shares * stock.purchasePrice),
+          convertedPrice,
+          convertedValue,
+          convertedCostBasis,
+          convertedGainLoss,
           displayCurrency: targetCurrency
-        };
-        convertedStocks.push(convertedStock);
-        totalValue += convertedStock.convertedValue;
-        totalCost += convertedStock.convertedCostBasis;
+        });
+
+        totalValue += convertedValue;
+        totalCost += convertedCostBasis;
       }
     }
 
@@ -118,13 +135,23 @@ class CurrencyConversionService {
       };
     } catch (error) {
       console.error(`Failed to convert ${stock.symbol}:`, error);
-      // Return original values if conversion fails
+      
+      // Use fallback exchange rates
+      console.log(`Using fallback exchange rate for single stock conversion: ${stock.symbol}`);
+      const fallbackRate = getFallbackExchangeRate(stock.currency, targetCurrency);
+      const convertedPrice = stock.currentPrice * fallbackRate;
+      const convertedPurchasePrice = stock.purchasePrice * fallbackRate;
+      
+      const convertedValue = stock.shares * convertedPrice;
+      const convertedCostBasis = stock.shares * convertedPurchasePrice;
+      const convertedGainLoss = convertedValue - convertedCostBasis;
+
       return {
         ...stock,
-        convertedPrice: stock.currentPrice,
-        convertedValue: stock.shares * stock.currentPrice,
-        convertedCostBasis: stock.shares * stock.purchasePrice,
-        convertedGainLoss: (stock.shares * stock.currentPrice) - (stock.shares * stock.purchasePrice),
+        convertedPrice,
+        convertedValue,
+        convertedCostBasis,
+        convertedGainLoss,
         displayCurrency: targetCurrency
       };
     }
