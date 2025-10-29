@@ -1,18 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Portfolio, Transaction, Liability, Holding, Asset } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
-import HoldingsTable from './components/HoldingsTable';
-import TransactionsTable from './components/TransactionsTable';
 import LiabilitiesTable from './components/LiabilitiesTable';
 import BalanceSheetSummary from './components/BalanceSheetSummary';
 import TransactionModal from './components/TransactionModal';
 import LiabilityModal from './components/LiabilityModal';
 import AssetModal from './components/AssetModal';
-import AssetsTable from './components/AssetsTable';
+import ComprehensiveAssetsView from './components/ComprehensiveAssetsView';
+import ComprehensiveTransactionsView from './components/ComprehensiveTransactionsView';
 import ConfirmDialog from './components/ConfirmDialog';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
-import { formatCurrency } from './utils/currency';
 import { useRefresh } from './hooks/useRefresh';
 // import { indianStockAPI } from './services/indianStockApi'; // Removed as not used directly in App.tsx
 import { Plus, TrendingUp, CreditCard, DollarSign, RefreshCw } from 'lucide-react';
@@ -39,7 +37,7 @@ const App: React.FC = () => {
   const [cash, setCash] = useState<number>(0);
   const [otherAssets, setOtherAssets] = useState<number>(0);
   const [otherLiabilities, setOtherLiabilities] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'holdings' | 'transactions' | 'liabilities' | 'balance-sheet' | 'assets'>('balance-sheet');
+  const [activeTab, setActiveTab] = useState<'balance-sheet' | 'assets' | 'liabilities' | 'transactions'>('balance-sheet');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -458,7 +456,7 @@ const App: React.FC = () => {
                 >
                   <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </button>
-                {(activeTab === 'holdings' || activeTab === 'transactions') && (
+                    {(activeTab === 'assets' || activeTab === 'transactions') && (
                   <button
                     onClick={handleAddTransaction}
                     className="btn-primary flex items-center space-x-2"
@@ -514,10 +512,9 @@ const App: React.FC = () => {
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
             {[
               { id: 'balance-sheet', label: 'Balance Sheet', icon: DollarSign, count: null },
-              { id: 'assets', label: 'Assets', icon: TrendingUp, count: portfolio.assets.length },
-              { id: 'holdings', label: 'Stocks', icon: TrendingUp, count: portfolio.holdings.length },
-              { id: 'transactions', label: 'Transactions', icon: Plus, count: portfolio.transactions.length },
-              { id: 'liabilities', label: 'Liabilities', icon: CreditCard, count: liabilities.length }
+              { id: 'assets', label: 'Assets', icon: TrendingUp, count: portfolio.assets.length + portfolio.holdings.length },
+              { id: 'liabilities', label: 'Liabilities', icon: CreditCard, count: liabilities.length },
+              { id: 'transactions', label: 'Transactions', icon: Plus, count: portfolio.transactions.length }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -550,75 +547,9 @@ const App: React.FC = () => {
         {/* Tab Content */}
         <div className="mt-6">
           {activeTab === 'assets' ? (
-            <AssetsTable
-              assets={portfolio.assets}
-              displayCurrency={selectedCurrency}
-              onEditAsset={handleEditAsset}
-              onDeleteAsset={handleDeleteAsset}
-              onAddAsset={handleAddAsset}
-            />
-          ) : activeTab === 'balance-sheet' ? (
-            <div className="space-y-6">
-              {/* Assets Section */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <DollarSign className="h-5 w-5 text-green-600 mr-2" />
-                  Assets
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-md font-medium text-gray-700 mb-3">Stock Portfolio</h4>
-                    <HoldingsTable
-                      holdings={portfolio.holdings}
-                      displayCurrency={selectedCurrency}
-                      onEditHolding={(holding) => {
-                        const holdingTransactions = portfolio.transactions.filter(t => t.symbol === holding.symbol);
-                        if (holdingTransactions.length > 0) {
-                          handleEditTransaction(holdingTransactions[0]);
-                        }
-                      }}
-                      onViewTransactions={() => setActiveTab('transactions')}
-                      onDeleteHolding={handleDeleteHolding}
-                    />
-                  </div>
-                  <div>
-                    <h4 className="text-md font-medium text-gray-700 mb-3">Other Assets</h4>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm text-gray-600">Cash</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatCurrency(cash, selectedCurrency)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm text-gray-600">Other Assets</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatCurrency(otherAssets, selectedCurrency)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Liabilities Section */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <CreditCard className="h-5 w-5 text-red-600 mr-2" />
-                  Liabilities
-                </h3>
-                <LiabilitiesTable
-                  liabilities={liabilities}
-                  displayCurrency={selectedCurrency}
-                  onEditLiability={handleEditLiability}
-                  onDeleteLiability={deleteLiability}
-                  onAddLiability={handleAddLiability}
-                />
-              </div>
-            </div>
-          ) : activeTab === 'holdings' ? (
-            <HoldingsTable
+            <ComprehensiveAssetsView
               holdings={portfolio.holdings}
+              assets={portfolio.assets}
               displayCurrency={selectedCurrency}
               onEditHolding={(holding) => {
                 const holdingTransactions = portfolio.transactions.filter(t => t.symbol === holding.symbol);
@@ -626,26 +557,38 @@ const App: React.FC = () => {
                   handleEditTransaction(holdingTransactions[0]);
                 }
               }}
-              onViewTransactions={() => setActiveTab('transactions')}
               onDeleteHolding={handleDeleteHolding}
+              onEditAsset={handleEditAsset}
+              onDeleteAsset={handleDeleteAsset}
+              onAddAsset={handleAddAsset}
+              onAddTransaction={handleAddTransaction}
             />
           ) : activeTab === 'transactions' ? (
-            <TransactionsTable
+            <ComprehensiveTransactionsView
               transactions={portfolio.transactions}
+              liabilities={liabilities}
               displayCurrency={selectedCurrency}
               onEditTransaction={handleEditTransaction}
               onDeleteTransaction={handleDeleteTransaction}
-              onAddTransaction={handleAddTransaction}
-            />
-          ) : activeTab === 'liabilities' ? (
-            <LiabilitiesTable
-              liabilities={liabilities}
-              displayCurrency={selectedCurrency}
               onEditLiability={handleEditLiability}
               onDeleteLiability={deleteLiability}
+              onAddTransaction={handleAddTransaction}
               onAddLiability={handleAddLiability}
             />
-          ) : null}
+          ) : activeTab === 'balance-sheet' ? (
+            <BalanceSheetSummary
+              balanceSheet={balanceSheet}
+              displayCurrency={selectedCurrency}
+            />
+            ) : activeTab === 'liabilities' ? (
+              <LiabilitiesTable
+                liabilities={liabilities}
+                displayCurrency={selectedCurrency}
+                onEditLiability={handleEditLiability}
+                onDeleteLiability={deleteLiability}
+                onAddLiability={handleAddLiability}
+              />
+            ) : null}
         </div>
       </main>
 
