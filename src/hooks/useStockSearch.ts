@@ -14,7 +14,7 @@ export interface UseStockSearchReturn {
   fetchQuote: (symbol: string) => Promise<void>;
 }
 
-export const useStockSearch = (): UseStockSearchReturn => {
+export const useStockSearch = (apiKey?: string): UseStockSearchReturn => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
   const [selectedStock, setSelectedStock] = useState<StockSearchResult | null>(null);
@@ -43,7 +43,7 @@ export const useStockSearch = (): UseStockSearchReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [apiKey]);
 
   // Handle search query changes with debouncing
   const handleSearchQueryChange = useCallback((query: string) => {
@@ -92,7 +92,7 @@ export const useStockSearch = (): UseStockSearchReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [apiKey]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

@@ -4,6 +4,7 @@ import PortfolioSummary from './components/PortfolioSummary';
 import StockList from './components/StockList';
 import AddStockModalV2 from './components/AddStockModalV2';
 import CurrencySelector from './components/CurrencySelector';
+import DebugPanel from './components/DebugPanel';
 import { useCurrencyConversion } from './hooks/useCurrencyConversion';
 import { Plus, TrendingUp, RefreshCw } from 'lucide-react';
 
@@ -192,6 +193,9 @@ const App: React.FC = () => {
         onClose={() => setIsAddModalOpen(false)}
         onAddStock={addStock}
       />
+
+      {/* Debug Panel - Remove in production */}
+      <DebugPanel />
     </div>
   );
 };
