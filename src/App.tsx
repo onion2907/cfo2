@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Stock, Portfolio, PortfolioMetrics } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
 import StockList from './components/StockList';
-import AddStockModal from './components/AddStockModal';
+import AddStockModalV2 from './components/AddStockModalV2';
 import { Plus, TrendingUp } from 'lucide-react';
 
 const STORAGE_KEY = 'stock-portfolio';
@@ -124,7 +124,7 @@ const App: React.FC = () => {
       </main>
 
       {/* Add Stock Modal */}
-      <AddStockModal
+      <AddStockModalV2
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddStock={addStock}
