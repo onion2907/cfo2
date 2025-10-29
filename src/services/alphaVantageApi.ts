@@ -112,6 +112,10 @@ class AlphaVantageAPI {
         throw new Error('API call frequency limit reached. Please try again later.');
       }
       
+      if (data['Information'] && data['Information'].includes('rate limit')) {
+        throw new Error('API rate limit exceeded. Using fallback exchange rates.');
+      }
+      
       return data;
     } catch (error) {
       console.error('Alpha Vantage API Error:', error);

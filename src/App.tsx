@@ -50,6 +50,7 @@ const App: React.FC = () => {
     convertedPortfolio,
     isLoading: isConverting,
     error: conversionError,
+    usingFallbackRates,
     setSelectedCurrency,
     refreshConversion,
     supportedCurrencies
@@ -152,6 +153,14 @@ const App: React.FC = () => {
           <div className="mb-6 p-4 bg-danger-50 border border-danger-200 rounded-lg">
             <p className="text-sm text-danger-600">
               Currency conversion error: {conversionError}
+            </p>
+          </div>
+        )}
+        
+        {usingFallbackRates && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              ⚠️ Using fallback exchange rates due to API rate limits. Values may not be current.
             </p>
           </div>
         )}

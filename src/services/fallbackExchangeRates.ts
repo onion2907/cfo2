@@ -1,22 +1,23 @@
 // Fallback exchange rates when Alpha Vantage API is not available
 // These are approximate rates and should be updated regularly
+// Last updated: October 2024
 export const FALLBACK_EXCHANGE_RATES: Record<string, Record<string, number>> = {
   'USD': {
-    'INR': 83.0,
+    'INR': 83.5,
     'EUR': 0.85,
-    'GBP': 0.78,
+    'GBP': 0.79,
     'JPY': 150.0,
-    'CAD': 1.35,
-    'AUD': 1.50,
-    'CHF': 0.88,
-    'CNY': 7.20,
-    'SGD': 1.35
+    'CAD': 1.37,
+    'AUD': 1.52,
+    'CHF': 0.90,
+    'CNY': 7.25,
+    'SGD': 1.37
   },
   'INR': {
     'USD': 0.012,
     'EUR': 0.010,
     'GBP': 0.009,
-    'JPY': 1.81,
+    'JPY': 1.80,
     'CAD': 0.016,
     'AUD': 0.018,
     'CHF': 0.011,
@@ -25,24 +26,24 @@ export const FALLBACK_EXCHANGE_RATES: Record<string, Record<string, number>> = {
   },
   'EUR': {
     'USD': 1.18,
-    'INR': 98.0,
-    'GBP': 0.92,
+    'INR': 98.5,
+    'GBP': 0.93,
     'JPY': 176.0,
-    'CAD': 1.59,
-    'AUD': 1.76,
-    'CHF': 1.04,
-    'CNY': 8.47,
-    'SGD': 1.59
+    'CAD': 1.61,
+    'AUD': 1.79,
+    'CHF': 1.06,
+    'CNY': 8.53,
+    'SGD': 1.61
   },
   'GBP': {
-    'USD': 1.28,
-    'INR': 106.0,
-    'EUR': 1.09,
-    'JPY': 192.0,
+    'USD': 1.27,
+    'INR': 105.5,
+    'EUR': 1.08,
+    'JPY': 190.0,
     'CAD': 1.73,
     'AUD': 1.92,
-    'CHF': 1.13,
-    'CNY': 9.23,
+    'CHF': 1.14,
+    'CNY': 9.20,
     'SGD': 1.73
   }
 };
