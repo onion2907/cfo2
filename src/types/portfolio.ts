@@ -9,6 +9,33 @@ export interface Stock {
   currency: string;
 }
 
+export interface Transaction {
+  id: string;
+  symbol: string;
+  name: string;
+  type: 'BUY' | 'SELL';
+  quantity: number;
+  price: number;
+  date: string;
+  currency: string;
+  notes?: string;
+}
+
+export interface Holding {
+  symbol: string;
+  name: string;
+  totalQuantity: number;
+  averageCost: number;
+  lastTradedPrice: number;
+  currentValue: number;
+  profitLoss: number;
+  profitLossPercent: number;
+  dayChange: number;
+  dayChangePercent: number;
+  currency: string;
+  transactions: Transaction[];
+}
+
 export interface PortfolioMetrics {
   totalValue: number;
   totalCost: number;
@@ -19,6 +46,7 @@ export interface PortfolioMetrics {
 }
 
 export interface Portfolio {
-  stocks: Stock[];
+  holdings: Holding[];
+  transactions: Transaction[];
   metrics: PortfolioMetrics;
 }

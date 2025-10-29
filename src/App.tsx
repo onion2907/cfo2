@@ -1,37 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Stock, Portfolio, PortfolioMetrics } from './types/portfolio';
+import { Portfolio, Transaction, Holding } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
-import StockList from './components/StockList';
-import AddStockModalV2 from './components/AddStockModalV2';
+import HoldingsTable from './components/HoldingsTable';
+import TransactionsTable from './components/TransactionsTable';
+import TabNavigation from './components/TabNavigation';
+import TransactionModal from './components/TransactionModal';
 import CurrencySelector from './components/CurrencySelector';
 import { useCurrencyConversion } from './hooks/useCurrencyConversion';
+import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { Plus, TrendingUp, RefreshCw } from 'lucide-react';
 
 const STORAGE_KEY = 'stock-portfolio';
 
-const calculatePortfolioMetrics = (stocks: Stock[]): PortfolioMetrics => {
-  const totalValue = stocks.reduce((sum, stock) => sum + (stock.shares * stock.currentPrice), 0);
-  const totalCost = stocks.reduce((sum, stock) => sum + (stock.shares * stock.purchasePrice), 0);
-  const totalGainLoss = totalValue - totalCost;
-  const totalGainLossPercentage = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
-  
-  // Mock day change calculation (in real app, this would come from API)
-  const dayChange = totalValue * 0.02; // 2% mock day change
-  const dayChangePercentage = 2.0;
-
-  return {
-    totalValue,
-    totalCost,
-    totalGainLoss,
-    totalGainLossPercentage,
-    dayChange,
-    dayChangePercentage
-  };
-};
-
 const App: React.FC = () => {
   const [portfolio, setPortfolio] = useState<Portfolio>({
-    stocks: [],
+    holdings: [],
+    transactions: [],
     metrics: {
       totalValue: 0,
       totalCost: 0,
@@ -41,9 +25,11 @@ const App: React.FC = () => {
       dayChangePercentage: 0
     }
   });
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'holdings' | 'transactions'>('holdings');
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  // Currency conversion hook
+  // Currency conversion hook - using holdings for conversion
   const {
     selectedCurrency,
     convertedPortfolio,
@@ -53,14 +39,35 @@ const App: React.FC = () => {
     setSelectedCurrency,
     refreshConversion,
     supportedCurrencies
-  } = useCurrencyConversion(portfolio.stocks);
+  } = useCurrencyConversion(portfolio.holdings.map(h => ({
+    id: h.symbol,
+    symbol: h.symbol,
+    name: h.name,
+    shares: h.totalQuantity,
+    purchasePrice: h.averageCost,
+    currentPrice: h.lastTradedPrice,
+    purchaseDate: new Date().toISOString().split('T')[0],
+    currency: h.currency
+  })));
 
   // Load portfolio from localStorage on mount
   useEffect(() => {
     const savedPortfolio = localStorage.getItem(STORAGE_KEY);
     if (savedPortfolio) {
-      const parsedPortfolio = JSON.parse(savedPortfolio);
-      setPortfolio(parsedPortfolio);
+      try {
+        const parsedPortfolio = JSON.parse(savedPortfolio);
+        
+        // Check if it's the old format and migrate
+        if (parsedPortfolio.stocks && !parsedPortfolio.holdings) {
+          const { holdings, transactions } = migrateOldPortfolio(parsedPortfolio.stocks);
+          const metrics = calculatePortfolioMetrics(holdings);
+          setPortfolio({ holdings, transactions, metrics });
+        } else {
+          setPortfolio(parsedPortfolio);
+        }
+      } catch (error) {
+        console.error('Error loading portfolio:', error);
+      }
     }
   }, []);
 
@@ -69,41 +76,57 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolio));
   }, [portfolio]);
 
-  const addStock = (stock: Omit<Stock, 'id'>) => {
-    const newStock: Stock = {
-      ...stock,
+  // Recalculate holdings and metrics when transactions change
+  useEffect(() => {
+    const holdings = calculateHoldingsFromTransactions(portfolio.transactions);
+    const metrics = calculatePortfolioMetrics(holdings);
+    setPortfolio(prev => ({ ...prev, holdings, metrics }));
+  }, [portfolio.transactions]);
+
+  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
+    const newTransaction: Transaction = {
+      ...transaction,
       id: Date.now().toString()
     };
-    
-    const updatedStocks = [...portfolio.stocks, newStock];
-    const updatedMetrics = calculatePortfolioMetrics(updatedStocks);
-    
-    setPortfolio({
-      stocks: updatedStocks,
-      metrics: updatedMetrics
-    });
+    setPortfolio(prev => ({
+      ...prev,
+      transactions: [...prev.transactions, newTransaction]
+    }));
   };
 
-  const updateStock = (id: string, updatedStock: Partial<Stock>) => {
-    const updatedStocks = portfolio.stocks.map(stock =>
-      stock.id === id ? { ...stock, ...updatedStock } : stock
-    );
-    const updatedMetrics = calculatePortfolioMetrics(updatedStocks);
-    
-    setPortfolio({
-      stocks: updatedStocks,
-      metrics: updatedMetrics
-    });
+  const updateTransaction = (id: string, updatedTransaction: Partial<Transaction>) => {
+    setPortfolio(prev => ({
+      ...prev,
+      transactions: prev.transactions.map(transaction =>
+        transaction.id === id ? { ...transaction, ...updatedTransaction } : transaction
+      )
+    }));
   };
 
-  const removeStock = (id: string) => {
-    const updatedStocks = portfolio.stocks.filter(stock => stock.id !== id);
-    const updatedMetrics = calculatePortfolioMetrics(updatedStocks);
-    
-    setPortfolio({
-      stocks: updatedStocks,
-      metrics: updatedMetrics
-    });
+  const deleteTransaction = (id: string) => {
+    setPortfolio(prev => ({
+      ...prev,
+      transactions: prev.transactions.filter(transaction => transaction.id !== id)
+    }));
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsTransactionModalOpen(true);
+  };
+
+  const handleAddTransaction = () => {
+    setEditingTransaction(null);
+    setIsTransactionModalOpen(true);
+  };
+
+  const handleSaveTransaction = (transaction: Omit<Transaction, 'id'>) => {
+    if (editingTransaction) {
+      updateTransaction(editingTransaction.id, transaction);
+    } else {
+      addTransaction(transaction);
+    }
+    setEditingTransaction(null);
   };
 
   return (
@@ -135,11 +158,11 @@ const App: React.FC = () => {
                 </button>
               </div>
               <button
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={handleAddTransaction}
                 className="btn-primary flex items-center space-x-2"
               >
                 <Plus className="h-4 w-4" />
-                <span>Add Stock</span>
+                <span>Add Transaction</span>
               </button>
             </div>
           </div>
@@ -164,42 +187,86 @@ const App: React.FC = () => {
           </div>
         )}
         
+        {/* Portfolio Summary */}
         {convertedPortfolio ? (
-          <>
-            <PortfolioSummary 
-              metrics={{
-                totalValue: convertedPortfolio.totalValue,
-                totalCost: convertedPortfolio.totalCost,
-                totalGainLoss: convertedPortfolio.totalGainLoss,
-                totalGainLossPercentage: convertedPortfolio.totalGainLossPercentage,
-                dayChange: 0, // TODO: Implement day change calculation
-                dayChangePercentage: 0
-              }}
-              displayCurrency={convertedPortfolio.displayCurrency}
-            />
-            <StockList
-              stocks={convertedPortfolio.stocks}
-              onUpdateStock={updateStock}
-              onRemoveStock={removeStock}
-            />
-          </>
+          <PortfolioSummary 
+            metrics={{
+              totalValue: convertedPortfolio.totalValue,
+              totalCost: convertedPortfolio.totalCost,
+              totalGainLoss: convertedPortfolio.totalGainLoss,
+              totalGainLossPercentage: convertedPortfolio.totalGainLossPercentage,
+              dayChange: 0, // TODO: Implement day change calculation
+              dayChangePercentage: 0
+            }}
+            displayCurrency={convertedPortfolio.displayCurrency}
+          />
         ) : (
-          <>
-            <PortfolioSummary metrics={portfolio.metrics} />
-            <StockList
-              stocks={portfolio.stocks}
-              onUpdateStock={updateStock}
-              onRemoveStock={removeStock}
-            />
-          </>
+          <PortfolioSummary metrics={portfolio.metrics} />
         )}
+
+        {/* Tab Navigation */}
+        <div className="mt-8">
+          <TabNavigation
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            holdingsCount={portfolio.holdings.length}
+            transactionsCount={portfolio.transactions.length}
+          />
+        </div>
+
+        {/* Tab Content */}
+        <div className="mt-6">
+          {activeTab === 'holdings' ? (
+            <HoldingsTable
+              holdings={convertedPortfolio ? 
+                convertedPortfolio.stocks.map(s => ({
+                  symbol: s.symbol,
+                  name: s.name,
+                  totalQuantity: s.shares,
+                  averageCost: s.purchasePrice,
+                  lastTradedPrice: s.currentPrice,
+                  currentValue: s.shares * s.currentPrice,
+                  profitLoss: (s.shares * s.currentPrice) - (s.shares * s.purchasePrice),
+                  profitLossPercent: s.purchasePrice > 0 ? ((s.currentPrice - s.purchasePrice) / s.purchasePrice) * 100 : 0,
+                  dayChange: 0,
+                  dayChangePercent: 0,
+                  currency: s.currency,
+                  transactions: []
+                })) : portfolio.holdings
+              }
+              displayCurrency={convertedPortfolio?.displayCurrency || 'USD'}
+              onEditHolding={(holding) => {
+                // Find transactions for this holding
+                const holdingTransactions = portfolio.transactions.filter(t => t.symbol === holding.symbol);
+                if (holdingTransactions.length > 0) {
+                  handleEditTransaction(holdingTransactions[0]);
+                }
+              }}
+              onViewTransactions={(holding) => {
+                setActiveTab('transactions');
+              }}
+            />
+          ) : (
+            <TransactionsTable
+              transactions={portfolio.transactions}
+              displayCurrency={convertedPortfolio?.displayCurrency || 'USD'}
+              onEditTransaction={handleEditTransaction}
+              onDeleteTransaction={deleteTransaction}
+              onAddTransaction={handleAddTransaction}
+            />
+          )}
+        </div>
       </main>
 
-      {/* Add Stock Modal */}
-      <AddStockModalV2
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAddStock={addStock}
+      {/* Transaction Modal */}
+      <TransactionModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => {
+          setIsTransactionModalOpen(false);
+          setEditingTransaction(null);
+        }}
+        onSaveTransaction={handleSaveTransaction}
+        editingTransaction={editingTransaction}
       />
 
     </div>
