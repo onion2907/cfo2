@@ -1,7 +1,9 @@
 // Indian Stock Market API Service
 // Focused on Indian stocks with INR currency
 
-const BASE_URL = 'https://api.indianstockmarket.com'; // Replace with actual API URL
+// Configuration
+const USE_REAL_API = true; // Set to false to use only mock data
+const BASE_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';
 
 // Mock data for development
 const MOCK_STOCKS: IndianStockSearchResult[] = [
@@ -201,7 +203,15 @@ class IndianStockAPI {
   // Get current stock quote
   async getStockQuote(symbol: string): Promise<IndianStockQuote | null> {
     try {
-      // Use mock data for now
+      // Try to fetch real data first if enabled
+      if (USE_REAL_API) {
+        const realQuote = await this.fetchRealStockQuote(symbol);
+        if (realQuote) {
+          return realQuote;
+        }
+      }
+
+      // Fallback to mock data if real API fails
       const mockStock = MOCK_STOCKS.find(stock => 
         stock.symbol.toLowerCase() === symbol.toLowerCase()
       );
@@ -228,6 +238,62 @@ class IndianStockAPI {
       return null;
     } catch (error) {
       console.error('Error fetching stock quote:', error);
+      return null;
+    }
+  }
+
+  // Fetch real stock quote from Yahoo Finance API
+  private async fetchRealStockQuote(symbol: string): Promise<IndianStockQuote | null> {
+    try {
+      // Convert symbol to Yahoo Finance format (add .NS for NSE)
+      const yahooSymbol = `${symbol}.NS`;
+      const url = `${BASE_URL}/${yahooSymbol}`;
+      
+      console.log(`Fetching real data for ${symbol} from: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Real API response:', data);
+
+      if (data.chart && data.chart.result && data.chart.result[0]) {
+        const result = data.chart.result[0];
+        const meta = result.meta;
+        
+        const currentPrice = meta.regularMarketPrice || 0;
+        const previousClose = meta.previousClose || currentPrice;
+        const change = currentPrice - previousClose;
+        const changePercent = previousClose > 0 ? (change / previousClose) * 100 : 0;
+
+        return {
+          symbol: symbol,
+          name: meta.longName || symbol,
+          currentPrice: currentPrice,
+          change: change,
+          changePercent: changePercent,
+          open: meta.regularMarketOpen || currentPrice,
+          high: meta.regularMarketDayHigh || currentPrice,
+          low: meta.regularMarketDayLow || currentPrice,
+          previousClose: previousClose,
+          volume: meta.regularMarketVolume || 0,
+          marketCap: meta.marketCap || 0,
+          exchange: 'NSE',
+          sector: 'Unknown',
+          currency: 'INR'
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching real stock quote:', error);
       return null;
     }
   }
@@ -409,10 +475,26 @@ class IndianStockAPI {
   // Refresh all data - clear cache and fetch fresh data
   async refreshAllData(): Promise<void> {
     console.log('Refreshing all API data...');
+    console.log('Real API enabled:', USE_REAL_API);
+    console.log('API Base URL:', BASE_URL);
     this.refreshCache.clear();
     
-    // For now, we'll just clear the cache
-    // In a real implementation, you would trigger fresh API calls here
+    // Test API connectivity
+    if (USE_REAL_API) {
+      try {
+        const testSymbol = 'RELIANCE';
+        console.log(`Testing API with ${testSymbol}...`);
+        const testQuote = await this.fetchRealStockQuote(testSymbol);
+        if (testQuote) {
+          console.log('✅ API is working! Test quote:', testQuote);
+        } else {
+          console.log('❌ API test failed - will use mock data');
+        }
+      } catch (error) {
+        console.log('❌ API test error:', error);
+      }
+    }
+    
     console.log('Cache cleared. Fresh data will be fetched on next request.');
   }
 
@@ -422,7 +504,16 @@ class IndianStockAPI {
       // Clear cache for this symbol
       this.refreshCache.delete(`quote_${symbol}`);
       
-      // Use mock data with some randomization to simulate fresh data
+      // Try to fetch real data first if enabled
+      if (USE_REAL_API) {
+        const realQuote = await this.fetchRealStockQuote(symbol);
+        if (realQuote) {
+          console.log(`Fresh real data fetched for ${symbol}:`, realQuote.currentPrice);
+          return realQuote;
+        }
+      }
+
+      // Fallback to mock data with some randomization
       const mockStock = MOCK_STOCKS.find(stock => 
         stock.symbol.toLowerCase() === symbol.toLowerCase()
       );
@@ -431,6 +522,8 @@ class IndianStockAPI {
         // Add some random variation to simulate market movement
         const variation = (Math.random() - 0.5) * 0.02; // ±1% variation
         const newPrice = (mockStock.currentPrice || 0) * (1 + variation);
+        
+        console.log(`Using mock data for ${symbol} with variation:`, variation);
         
         return {
           symbol: mockStock.symbol,
