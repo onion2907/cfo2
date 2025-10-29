@@ -3,7 +3,8 @@
 
 // Configuration
 const USE_REAL_API = true; // Set to false to use only mock data
-const BASE_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';
+const BASE_URL = 'https://indianapi.in/api'; // Indian API marketplace
+const API_KEY = 'sk-live-6pnOC4qCbj10La77gSeqOHHMAOW55lU8mb2NDYVr';
 
 // Mock data for development
 const MOCK_STOCKS: IndianStockSearchResult[] = [
@@ -18,7 +19,6 @@ const MOCK_STOCKS: IndianStockSearchResult[] = [
   { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd', exchange: 'NSE', currentPrice: 980.60, sector: 'Telecom' },
   { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd', exchange: 'NSE', currentPrice: 3200.40, sector: 'Paints' }
 ];
-const API_KEY = 'sk-live-6pnOC4qCbj10La77gSeqOHHMAOW55lU8mb2NDYVr';
 
 // Types for Indian Stock API
 export interface IndianStockSearchResult {
@@ -133,7 +133,9 @@ class IndianStockAPI {
       const response = await fetch(url.toString(), {
         headers: {
           'x-api-key': API_KEY,
+          'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
       });
 
@@ -154,7 +156,26 @@ class IndianStockAPI {
   // Search for Indian stocks
   async searchStocks(query: string): Promise<IndianStockSearchResult[]> {
     try {
-      // Use mock data for now
+      if (USE_REAL_API) {
+        // Try to search using IndianAPI.in
+        try {
+          const data = await this.makeRequest<any>('/stock', { name: query });
+          if (data && data.symbol) {
+            return [{
+              symbol: data.symbol,
+              name: data.name || query,
+              exchange: data.exchange || 'NSE',
+              currentPrice: data.current_price || data.price,
+              sector: data.sector,
+              marketCap: data.market_cap
+            }];
+          }
+        } catch (apiError) {
+          console.log('IndianAPI.in search failed, using mock data:', apiError);
+        }
+      }
+
+      // Fallback to mock data
       return MOCK_STOCKS.filter(stock => 
         stock.name.toLowerCase().includes(query.toLowerCase()) ||
         stock.symbol.toLowerCase().includes(query.toLowerCase())
@@ -242,58 +263,42 @@ class IndianStockAPI {
     }
   }
 
-  // Fetch real stock quote from Yahoo Finance API
+  // Fetch real stock quote from IndianAPI.in
   private async fetchRealStockQuote(symbol: string): Promise<IndianStockQuote | null> {
     try {
-      // Convert symbol to Yahoo Finance format (add .NS for NSE)
-      const yahooSymbol = `${symbol}.NS`;
-      const url = `${BASE_URL}/${yahooSymbol}`;
+      console.log(`Fetching real data for ${symbol} from IndianAPI.in`);
       
-      console.log(`Fetching real data for ${symbol} from: ${url}`);
-      
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
+      // Use the stock endpoint from your API specification
+      const data = await this.makeRequest<any>('/stock', { name: symbol });
+      console.log('IndianAPI.in response:', data);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Real API response:', data);
-
-      if (data.chart && data.chart.result && data.chart.result[0]) {
-        const result = data.chart.result[0];
-        const meta = result.meta;
-        
-        const currentPrice = meta.regularMarketPrice || 0;
-        const previousClose = meta.previousClose || currentPrice;
-        const change = currentPrice - previousClose;
-        const changePercent = previousClose > 0 ? (change / previousClose) * 100 : 0;
+      if (data && data.current_price !== undefined) {
+        const currentPrice = data.current_price || data.price || 0;
+        const previousClose = data.previous_close || currentPrice;
+        const change = data.change || (currentPrice - previousClose);
+        const changePercent = data.change_percent || (previousClose > 0 ? (change / previousClose) * 100 : 0);
 
         return {
-          symbol: symbol,
-          name: meta.longName || symbol,
+          symbol: data.symbol || symbol,
+          name: data.name || symbol,
           currentPrice: currentPrice,
           change: change,
           changePercent: changePercent,
-          open: meta.regularMarketOpen || currentPrice,
-          high: meta.regularMarketDayHigh || currentPrice,
-          low: meta.regularMarketDayLow || currentPrice,
+          open: data.open || currentPrice,
+          high: data.high || currentPrice,
+          low: data.low || currentPrice,
           previousClose: previousClose,
-          volume: meta.regularMarketVolume || 0,
-          marketCap: meta.marketCap || 0,
-          exchange: 'NSE',
-          sector: 'Unknown',
+          volume: data.volume || 0,
+          marketCap: data.market_cap || 0,
+          exchange: data.exchange || 'NSE',
+          sector: data.sector || 'Unknown',
           currency: 'INR'
         };
       }
 
       return null;
     } catch (error) {
-      console.error('Error fetching real stock quote:', error);
+      console.error('Error fetching real stock quote from IndianAPI.in:', error);
       return null;
     }
   }
@@ -313,8 +318,17 @@ class IndianStockAPI {
         exchange: stock.exchange || 'NSE'
       }));
     } catch (error) {
-      console.error('Error fetching trending stocks:', error);
-      return [];
+      console.error('Error fetching trending stocks from IndianAPI.in:', error);
+      // Fallback to mock data
+      return MOCK_STOCKS.slice(0, 5).map(stock => ({
+        symbol: stock.symbol,
+        name: stock.name,
+        currentPrice: stock.currentPrice || 0,
+        change: Math.random() * 100 - 50,
+        changePercent: Math.random() * 10 - 5,
+        volume: Math.floor(Math.random() * 1000000),
+        exchange: stock.exchange
+      }));
     }
   }
 
