@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, List, Plus } from 'lucide-react';
+import { TrendingUp, List } from 'lucide-react';
 
 interface TabNavigationProps {
   activeTab: 'holdings' | 'transactions';

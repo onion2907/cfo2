@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Portfolio, Transaction, Holding } from './types/portfolio';
+import { Portfolio, Transaction } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
 import HoldingsTable from './components/HoldingsTable';
 import TransactionsTable from './components/TransactionsTable';

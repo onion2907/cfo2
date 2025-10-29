@@ -70,7 +70,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
           notes: ''
         });
         setSearchQuery('');
-        selectStock(null);
+        selectStock(undefined);
       }
       setErrors({});
     }
@@ -133,7 +133,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         notes: ''
       });
       setSearchQuery('');
-      selectStock(null);
+      selectStock(undefined);
       onClose();
     }
   };
