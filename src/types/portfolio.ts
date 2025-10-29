@@ -113,9 +113,53 @@ export interface BalanceSheet {
   };
 }
 
+// Asset Types
+export type AssetType = 
+  | 'FIXED_DEPOSIT'
+  | 'RECURRING_DEPOSIT'
+  | 'GOLD'
+  | 'SILVER'
+  | 'JEWELS'
+  | 'BONDS'
+  | 'REAL_ESTATE'
+  | 'PROVIDENT_FUND'
+  | 'PENSION_FUND'
+  | 'MUTUAL_FUNDS'
+  | 'RECEIVABLES'
+  | 'STOCKS';
+
+export interface Asset {
+  id: string;
+  name: string;
+  type: AssetType;
+  amount: number;
+  currency: 'INR';
+  description?: string;
+  purchaseDate?: string;
+  maturityDate?: string;
+  interestRate?: number;
+  currentValue?: number;
+  isActive: boolean;
+  lastUpdated: string;
+  // Type-specific fields
+  bankName?: string; // For FDs, RDs
+  accountNumber?: string; // For FDs, RDs
+  weight?: number; // For gold, silver, jewels (in grams)
+  purity?: string; // For gold, silver (e.g., "24K", "999")
+  propertyAddress?: string; // For real estate
+  propertyType?: string; // For real estate (residential, commercial, land)
+  fundName?: string; // For mutual funds, provident fund, pension fund
+  fundHouse?: string; // For mutual funds
+  nav?: number; // For mutual funds
+  units?: number; // For mutual funds
+  dueDate?: string; // For receivables
+  debtorName?: string; // For receivables
+}
+
 export interface Portfolio {
   holdings: Holding[];
   transactions: Transaction[];
+  assets: Asset[];
   metrics: PortfolioMetrics;
   lastUpdated?: string;
   lastRefreshTime?: string;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Portfolio, Transaction, Liability, Holding } from './types/portfolio';
+import { Portfolio, Transaction, Liability, Holding, Asset } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
 import HoldingsTable from './components/HoldingsTable';
 import TransactionsTable from './components/TransactionsTable';
@@ -7,6 +7,8 @@ import LiabilitiesTable from './components/LiabilitiesTable';
 import BalanceSheetSummary from './components/BalanceSheetSummary';
 import TransactionModal from './components/TransactionModal';
 import LiabilityModal from './components/LiabilityModal';
+import AssetModal from './components/AssetModal';
+import AssetsTable from './components/AssetsTable';
 import ConfirmDialog from './components/ConfirmDialog';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
@@ -17,11 +19,13 @@ import { Plus, TrendingUp, CreditCard, DollarSign, RefreshCw } from 'lucide-reac
 
 const STORAGE_KEY = 'stock-portfolio';
 const LIABILITIES_STORAGE_KEY = 'liabilities';
+const ASSETS_STORAGE_KEY = 'assets';
 
 const App: React.FC = () => {
   const [portfolio, setPortfolio] = useState<Portfolio>({
     holdings: [],
     transactions: [],
+    assets: [],
     metrics: {
       totalValue: 0,
       totalCost: 0,
@@ -35,11 +39,13 @@ const App: React.FC = () => {
   const [cash, setCash] = useState<number>(0);
   const [otherAssets, setOtherAssets] = useState<number>(0);
   const [otherLiabilities, setOtherLiabilities] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'holdings' | 'transactions' | 'liabilities' | 'balance-sheet'>('balance-sheet');
+  const [activeTab, setActiveTab] = useState<'holdings' | 'transactions' | 'liabilities' | 'balance-sheet' | 'assets'>('balance-sheet');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -81,6 +87,7 @@ const App: React.FC = () => {
           setPortfolio({ 
             holdings, 
             transactions, 
+            assets: [],
             metrics,
             lastUpdated: new Date().toISOString(),
             lastRefreshTime: parsedPortfolio.lastRefreshTime || new Date().toISOString()
@@ -89,6 +96,7 @@ const App: React.FC = () => {
           // Ensure timestamps are present
           setPortfolio({
             ...parsedPortfolio,
+            assets: parsedPortfolio.assets || [],
             lastUpdated: parsedPortfolio.lastUpdated || new Date().toISOString(),
             lastRefreshTime: parsedPortfolio.lastRefreshTime || new Date().toISOString()
           });
@@ -129,6 +137,17 @@ const App: React.FC = () => {
     if (savedOtherLiabilities) {
       setOtherLiabilities(parseFloat(savedOtherLiabilities));
     }
+
+    // Load assets
+    const savedAssets = localStorage.getItem(ASSETS_STORAGE_KEY);
+    if (savedAssets) {
+      try {
+        const parsedAssets = JSON.parse(savedAssets);
+        setPortfolio(prev => ({ ...prev, assets: parsedAssets }));
+      } catch (error) {
+        console.error('Error loading assets:', error);
+      }
+    }
   }, []);
 
   // Save portfolio to localStorage whenever it changes
@@ -157,6 +176,11 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('otherLiabilities', otherLiabilities.toString());
   }, [otherLiabilities]);
+
+  // Save assets to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify(portfolio.assets));
+  }, [portfolio.assets]);
 
   // Recalculate holdings and metrics when transactions change
   useEffect(() => {
@@ -193,7 +217,8 @@ const App: React.FC = () => {
     liabilities,
     cash,
     otherAssets,
-    otherLiabilities
+    otherLiabilities,
+    portfolio.assets
   );
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
@@ -315,6 +340,64 @@ const App: React.FC = () => {
     setEditingLiability(null);
   };
 
+  // Asset management functions
+  const addAsset = (asset: Omit<Asset, 'id'>) => {
+    const newAsset: Asset = {
+      ...asset,
+      id: Date.now().toString()
+    };
+    setPortfolio(prev => ({
+      ...prev,
+      assets: [...prev.assets, newAsset]
+    }));
+  };
+
+  const updateAsset = (id: string, updatedAsset: Partial<Asset>) => {
+    setPortfolio(prev => ({
+      ...prev,
+      assets: prev.assets.map(asset =>
+        asset.id === id ? { ...asset, ...updatedAsset } : asset
+      )
+    }));
+  };
+
+  const deleteAsset = (id: string) => {
+    setPortfolio(prev => ({
+      ...prev,
+      assets: prev.assets.filter(asset => asset.id !== id)
+    }));
+  };
+
+  const handleEditAsset = (asset: Asset) => {
+    setEditingAsset(asset);
+    setIsAssetModalOpen(true);
+  };
+
+  const handleAddAsset = () => {
+    setEditingAsset(null);
+    setIsAssetModalOpen(true);
+  };
+
+  const handleSaveAsset = (asset: Omit<Asset, 'id'>) => {
+    if (editingAsset) {
+      updateAsset(editingAsset.id, asset);
+    } else {
+      addAsset(asset);
+    }
+    setEditingAsset(null);
+    setIsAssetModalOpen(false);
+  };
+
+  const handleDeleteAsset = (asset: Asset) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Asset',
+      message: `Are you sure you want to delete ${asset.name}? This action cannot be undone.`,
+      onConfirm: () => deleteAsset(asset.id),
+      type: 'danger'
+    });
+  };
+
   // Handle refresh button click
   const handleRefresh = async () => {
     try {
@@ -431,7 +514,8 @@ const App: React.FC = () => {
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
             {[
               { id: 'balance-sheet', label: 'Balance Sheet', icon: DollarSign, count: null },
-              { id: 'holdings', label: 'Assets', icon: TrendingUp, count: portfolio.holdings.length },
+              { id: 'assets', label: 'Assets', icon: TrendingUp, count: portfolio.assets.length },
+              { id: 'holdings', label: 'Stocks', icon: TrendingUp, count: portfolio.holdings.length },
               { id: 'transactions', label: 'Transactions', icon: Plus, count: portfolio.transactions.length },
               { id: 'liabilities', label: 'Liabilities', icon: CreditCard, count: liabilities.length }
             ].map((tab) => {
@@ -465,7 +549,15 @@ const App: React.FC = () => {
 
         {/* Tab Content */}
         <div className="mt-6">
-          {activeTab === 'balance-sheet' ? (
+          {activeTab === 'assets' ? (
+            <AssetsTable
+              assets={portfolio.assets}
+              displayCurrency={selectedCurrency}
+              onEditAsset={handleEditAsset}
+              onDeleteAsset={handleDeleteAsset}
+              onAddAsset={handleAddAsset}
+            />
+          ) : activeTab === 'balance-sheet' ? (
             <div className="space-y-6">
               {/* Assets Section */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -577,6 +669,17 @@ const App: React.FC = () => {
         }}
         onSaveLiability={handleSaveLiability}
         editingLiability={editingLiability}
+      />
+
+      {/* Asset Modal */}
+      <AssetModal
+        isOpen={isAssetModalOpen}
+        onClose={() => {
+          setIsAssetModalOpen(false);
+          setEditingAsset(null);
+        }}
+        onSaveAsset={handleSaveAsset}
+        editingAsset={editingAsset}
       />
 
       {/* Confirmation Dialog */}

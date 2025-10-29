@@ -1,4 +1,4 @@
-import { Liability, LiabilityPayment, LiabilityMetrics, BalanceSheet, Holding, PortfolioMetrics } from '../types/portfolio';
+import { Liability, LiabilityPayment, LiabilityMetrics, BalanceSheet, Holding, PortfolioMetrics, Asset } from '../types/portfolio';
 
 export const calculateLiabilityMetrics = (liabilities: Liability[]): LiabilityMetrics => {
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.currentBalance, 0);
@@ -39,7 +39,8 @@ export const calculateBalanceSheet = (
   liabilities: Liability[],
   cash: number = 0,
   otherAssets: number = 0,
-  otherLiabilities: number = 0
+  otherLiabilities: number = 0,
+  assets: Asset[] = []
 ): BalanceSheet => {
   // Calculate asset metrics
   const totalStockValue = holdings.reduce((sum, holding) => sum + holding.currentValue, 0);
@@ -59,8 +60,13 @@ export const calculateBalanceSheet = (
   // Calculate liability metrics
   const liabilityMetrics = calculateLiabilityMetrics(liabilities);
 
+  // Calculate asset totals
+  const totalAssetValue = assets.reduce((sum, asset) => {
+    return sum + (asset.currentValue || asset.amount);
+  }, 0);
+
   // Calculate totals
-  const totalAssets = totalStockValue + cash + otherAssets;
+  const totalAssets = totalStockValue + cash + otherAssets + totalAssetValue;
   const totalLiabilities = liabilityMetrics.totalLiabilities + otherLiabilities;
   const netWorth = totalAssets - totalLiabilities;
 
