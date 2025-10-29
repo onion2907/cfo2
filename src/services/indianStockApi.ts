@@ -115,6 +115,8 @@ export interface MutualFund {
 }
 
 class IndianStockAPI {
+  private refreshCache: Map<string, { data: any; timestamp: number }> = new Map();
+
   private async makeRequest<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
     const url = new URL(`${BASE_URL}${endpoint}`);
     
@@ -401,6 +403,57 @@ class IndianStockAPI {
     } catch (error) {
       console.error('Error fetching IPO data:', error);
       return [];
+    }
+  }
+
+  // Refresh all data - clear cache and fetch fresh data
+  async refreshAllData(): Promise<void> {
+    console.log('Refreshing all API data...');
+    this.refreshCache.clear();
+    
+    // For now, we'll just clear the cache
+    // In a real implementation, you would trigger fresh API calls here
+    console.log('Cache cleared. Fresh data will be fetched on next request.');
+  }
+
+  // Get fresh stock quote (bypass cache)
+  async getFreshStockQuote(symbol: string): Promise<IndianStockQuote | null> {
+    try {
+      // Clear cache for this symbol
+      this.refreshCache.delete(`quote_${symbol}`);
+      
+      // Use mock data with some randomization to simulate fresh data
+      const mockStock = MOCK_STOCKS.find(stock => 
+        stock.symbol.toLowerCase() === symbol.toLowerCase()
+      );
+      
+      if (mockStock) {
+        // Add some random variation to simulate market movement
+        const variation = (Math.random() - 0.5) * 0.02; // ±1% variation
+        const newPrice = (mockStock.currentPrice || 0) * (1 + variation);
+        
+        return {
+          symbol: mockStock.symbol,
+          name: mockStock.name,
+          currentPrice: newPrice,
+          change: (Math.random() - 0.5) * 100, // Random change for demo
+          changePercent: (Math.random() - 0.5) * 10, // Random percentage for demo
+          open: newPrice + (Math.random() * 20 - 10),
+          high: newPrice + Math.random() * 50,
+          low: newPrice - Math.random() * 30,
+          previousClose: newPrice + (Math.random() * 20 - 10),
+          volume: Math.floor(Math.random() * 1000000),
+          marketCap: Math.floor(Math.random() * 1000000000000),
+          exchange: mockStock.exchange,
+          sector: mockStock.sector,
+          currency: 'INR'
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching fresh stock quote:', error);
+      return null;
     }
   }
 }

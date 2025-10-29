@@ -10,7 +10,8 @@ import LiabilityModal from './components/LiabilityModal';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
 import { formatCurrency } from './utils/currency';
-import { Plus, TrendingUp, CreditCard, DollarSign } from 'lucide-react';
+import { useRefresh } from './hooks/useRefresh';
+import { Plus, TrendingUp, CreditCard, DollarSign, RefreshCw } from 'lucide-react';
 
 const STORAGE_KEY = 'stock-portfolio';
 const LIABILITIES_STORAGE_KEY = 'liabilities';
@@ -40,6 +41,15 @@ const App: React.FC = () => {
 
   // Focus on INR currency only
   const selectedCurrency = 'INR';
+
+  // Refresh functionality
+  const {
+    isRefreshing,
+    lastRefreshTime,
+    refreshError,
+    refreshPortfolio,
+    refreshAllData
+  } = useRefresh();
 
   // Load portfolio from localStorage on mount
   useEffect(() => {
@@ -218,6 +228,30 @@ const App: React.FC = () => {
     setEditingLiability(null);
   };
 
+  // Handle refresh button click
+  const handleRefresh = async () => {
+    try {
+      console.log('User triggered refresh...');
+      
+      // Refresh all API data first
+      await refreshAllData();
+      
+      // Then refresh portfolio with fresh data
+      const { holdings, metrics } = await refreshPortfolio(portfolio.transactions);
+      
+      // Update portfolio with fresh holdings and metrics
+      setPortfolio(prev => ({
+        ...prev,
+        holdings,
+        metrics
+      }));
+      
+      console.log('Refresh completed successfully');
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -231,8 +265,21 @@ const App: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-600">Currency: ₹ INR</span>
+                {lastRefreshTime && (
+                  <span className="text-xs text-gray-500">
+                    Last updated: {lastRefreshTime.toLocaleTimeString()}
+                  </span>
+                )}
               </div>
               <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
+                  title="Refresh all data"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
                 {(activeTab === 'holdings' || activeTab === 'transactions') && (
                   <button
                     onClick={handleAddTransaction}
@@ -259,6 +306,14 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Refresh Error Display */}
+        {refreshError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">
+              Refresh error: {refreshError}
+            </p>
+          </div>
+        )}
         
         {/* Balance Sheet Summary */}
         {activeTab === 'balance-sheet' && (
