@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Portfolio, Transaction } from './types/portfolio';
+import { Portfolio, Transaction, Liability } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
 import HoldingsTable from './components/HoldingsTable';
 import TransactionsTable from './components/TransactionsTable';
-import TabNavigation from './components/TabNavigation';
+import LiabilitiesTable from './components/LiabilitiesTable';
+import BalanceSheetSummary from './components/BalanceSheetSummary';
 import TransactionModal from './components/TransactionModal';
+import LiabilityModal from './components/LiabilityModal';
 import CurrencySelector from './components/CurrencySelector';
 import { useCurrencyConversion } from './hooks/useCurrencyConversion';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
-import { Plus, TrendingUp, RefreshCw } from 'lucide-react';
+import { calculateBalanceSheet } from './utils/liabilityCalculations';
+import { formatCurrency } from './utils/currency';
+import { Plus, TrendingUp, RefreshCw, CreditCard, DollarSign } from 'lucide-react';
 
 const STORAGE_KEY = 'stock-portfolio';
+const LIABILITIES_STORAGE_KEY = 'liabilities';
 
 const App: React.FC = () => {
   const [portfolio, setPortfolio] = useState<Portfolio>({
@@ -25,9 +30,15 @@ const App: React.FC = () => {
       dayChangePercentage: 0
     }
   });
-  const [activeTab, setActiveTab] = useState<'holdings' | 'transactions'>('holdings');
+  const [liabilities, setLiabilities] = useState<Liability[]>([]);
+  const [cash, setCash] = useState<number>(0);
+  const [otherAssets, setOtherAssets] = useState<number>(0);
+  const [otherLiabilities, setOtherLiabilities] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'holdings' | 'transactions' | 'liabilities' | 'balance-sheet'>('balance-sheet');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
 
   // Currency conversion hook - using holdings for conversion
   const {
@@ -69,6 +80,33 @@ const App: React.FC = () => {
         console.error('Error loading portfolio:', error);
       }
     }
+
+    // Load liabilities from localStorage
+    const savedLiabilities = localStorage.getItem(LIABILITIES_STORAGE_KEY);
+    if (savedLiabilities) {
+      try {
+        const parsedLiabilities = JSON.parse(savedLiabilities);
+        setLiabilities(parsedLiabilities);
+      } catch (error) {
+        console.error('Error loading liabilities:', error);
+      }
+    }
+
+    // Load other financial data
+    const savedCash = localStorage.getItem('cash');
+    if (savedCash) {
+      setCash(parseFloat(savedCash));
+    }
+
+    const savedOtherAssets = localStorage.getItem('otherAssets');
+    if (savedOtherAssets) {
+      setOtherAssets(parseFloat(savedOtherAssets));
+    }
+
+    const savedOtherLiabilities = localStorage.getItem('otherLiabilities');
+    if (savedOtherLiabilities) {
+      setOtherLiabilities(parseFloat(savedOtherLiabilities));
+    }
   }, []);
 
   // Save portfolio to localStorage whenever it changes
@@ -76,12 +114,39 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolio));
   }, [portfolio]);
 
+  // Save liabilities to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(LIABILITIES_STORAGE_KEY, JSON.stringify(liabilities));
+  }, [liabilities]);
+
+  // Save other financial data to localStorage
+  useEffect(() => {
+    localStorage.setItem('cash', cash.toString());
+  }, [cash]);
+
+  useEffect(() => {
+    localStorage.setItem('otherAssets', otherAssets.toString());
+  }, [otherAssets]);
+
+  useEffect(() => {
+    localStorage.setItem('otherLiabilities', otherLiabilities.toString());
+  }, [otherLiabilities]);
+
   // Recalculate holdings and metrics when transactions change
   useEffect(() => {
     const holdings = calculateHoldingsFromTransactions(portfolio.transactions);
     const metrics = calculatePortfolioMetrics(holdings);
     setPortfolio(prev => ({ ...prev, holdings, metrics }));
   }, [portfolio.transactions]);
+
+  // Calculate balance sheet
+  const balanceSheet = calculateBalanceSheet(
+    portfolio.holdings,
+    liabilities,
+    cash,
+    otherAssets,
+    otherLiabilities
+  );
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
@@ -129,6 +194,46 @@ const App: React.FC = () => {
     setEditingTransaction(null);
   };
 
+  // Liability management functions
+  const addLiability = (liability: Omit<Liability, 'id'>) => {
+    const newLiability: Liability = {
+      ...liability,
+      id: Date.now().toString()
+    };
+    setLiabilities(prev => [...prev, newLiability]);
+  };
+
+  const updateLiability = (id: string, updatedLiability: Partial<Liability>) => {
+    setLiabilities(prev =>
+      prev.map(liability =>
+        liability.id === id ? { ...liability, ...updatedLiability } : liability
+      )
+    );
+  };
+
+  const deleteLiability = (id: string) => {
+    setLiabilities(prev => prev.filter(liability => liability.id !== id));
+  };
+
+  const handleEditLiability = (liability: Liability) => {
+    setEditingLiability(liability);
+    setIsLiabilityModalOpen(true);
+  };
+
+  const handleAddLiability = () => {
+    setEditingLiability(null);
+    setIsLiabilityModalOpen(true);
+  };
+
+  const handleSaveLiability = (liability: Omit<Liability, 'id'>) => {
+    if (editingLiability) {
+      updateLiability(editingLiability.id, liability);
+    } else {
+      addLiability(liability);
+    }
+    setEditingLiability(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -157,13 +262,26 @@ const App: React.FC = () => {
                   <RefreshCw className={`h-4 w-4 ${isConverting ? 'animate-spin' : ''}`} />
                 </button>
               </div>
-              <button
-                onClick={handleAddTransaction}
-                className="btn-primary flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Add Transaction</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                {activeTab === 'transactions' && (
+                  <button
+                    onClick={handleAddTransaction}
+                    className="btn-primary flex items-center space-x-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Transaction</span>
+                  </button>
+                )}
+                {activeTab === 'liabilities' && (
+                  <button
+                    onClick={handleAddLiability}
+                    className="btn-primary flex items-center space-x-2"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    <span>Add Liability</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -187,36 +305,146 @@ const App: React.FC = () => {
           </div>
         )}
         
-        {/* Portfolio Summary */}
-        {convertedPortfolio ? (
-          <PortfolioSummary 
-            metrics={{
-              totalValue: convertedPortfolio.totalValue,
-              totalCost: convertedPortfolio.totalCost,
-              totalGainLoss: convertedPortfolio.totalGainLoss,
-              totalGainLossPercentage: convertedPortfolio.totalGainLossPercentage,
-              dayChange: 0, // TODO: Implement day change calculation
-              dayChangePercentage: 0
-            }}
-            displayCurrency={convertedPortfolio.displayCurrency}
+        {/* Balance Sheet Summary */}
+        {activeTab === 'balance-sheet' && (
+          <BalanceSheetSummary
+            balanceSheet={balanceSheet}
+            displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
           />
-        ) : (
-          <PortfolioSummary metrics={portfolio.metrics} />
+        )}
+
+        {/* Portfolio Summary for other tabs */}
+        {activeTab !== 'balance-sheet' && (
+          convertedPortfolio ? (
+            <PortfolioSummary 
+              metrics={{
+                totalValue: convertedPortfolio.totalValue,
+                totalCost: convertedPortfolio.totalCost,
+                totalGainLoss: convertedPortfolio.totalGainLoss,
+                totalGainLossPercentage: convertedPortfolio.totalGainLossPercentage,
+                dayChange: 0, // TODO: Implement day change calculation
+                dayChangePercentage: 0
+              }}
+              displayCurrency={convertedPortfolio.displayCurrency}
+            />
+          ) : (
+            <PortfolioSummary metrics={portfolio.metrics} />
+          )
         )}
 
         {/* Tab Navigation */}
         <div className="mt-8">
-          <TabNavigation
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            holdingsCount={portfolio.holdings.length}
-            transactionsCount={portfolio.transactions.length}
-          />
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+            {[
+              { id: 'balance-sheet', label: 'Balance Sheet', icon: DollarSign, count: null },
+              { id: 'holdings', label: 'Holdings', icon: TrendingUp, count: portfolio.holdings.length },
+              { id: 'transactions', label: 'Transactions', icon: Plus, count: portfolio.transactions.length },
+              { id: 'liabilities', label: 'Liabilities', icon: CreditCard, count: liabilities.length }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                    activeTab === tab.id
+                      ? 'bg-white text-primary-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                  {tab.count !== null && (
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      activeTab === tab.id
+                        ? 'bg-primary-100 text-primary-600'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Tab Content */}
         <div className="mt-6">
-          {activeTab === 'holdings' ? (
+          {activeTab === 'balance-sheet' ? (
+            <div className="space-y-6">
+              {/* Assets Section */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <DollarSign className="h-5 w-5 text-green-600 mr-2" />
+                  Assets
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">Stock Portfolio</h4>
+                    <HoldingsTable
+                      holdings={convertedPortfolio ? 
+                        convertedPortfolio.stocks.map(s => ({
+                          symbol: s.symbol,
+                          name: s.name,
+                          totalQuantity: s.shares,
+                          averageCost: s.purchasePrice,
+                          lastTradedPrice: s.currentPrice,
+                          currentValue: s.shares * s.currentPrice,
+                          profitLoss: (s.shares * s.currentPrice) - (s.shares * s.purchasePrice),
+                          profitLossPercent: s.purchasePrice > 0 ? ((s.currentPrice - s.purchasePrice) / s.purchasePrice) * 100 : 0,
+                          dayChange: 0,
+                          dayChangePercent: 0,
+                          currency: s.currency,
+                          transactions: []
+                        })) : portfolio.holdings
+                      }
+                      displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+                      onEditHolding={(holding) => {
+                        const holdingTransactions = portfolio.transactions.filter(t => t.symbol === holding.symbol);
+                        if (holdingTransactions.length > 0) {
+                          handleEditTransaction(holdingTransactions[0]);
+                        }
+                      }}
+                      onViewTransactions={() => setActiveTab('transactions')}
+                    />
+                  </div>
+                  <div>
+                    <h4 className="text-md font-medium text-gray-700 mb-3">Other Assets</h4>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm text-gray-600">Cash</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {formatCurrency(cash, convertedPortfolio?.displayCurrency || selectedCurrency)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm text-gray-600">Other Assets</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {formatCurrency(otherAssets, convertedPortfolio?.displayCurrency || selectedCurrency)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Liabilities Section */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <CreditCard className="h-5 w-5 text-red-600 mr-2" />
+                  Liabilities
+                </h3>
+                <LiabilitiesTable
+                  liabilities={liabilities}
+                  displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+                  onEditLiability={handleEditLiability}
+                  onDeleteLiability={deleteLiability}
+                  onAddLiability={handleAddLiability}
+                />
+              </div>
+            </div>
+          ) : activeTab === 'holdings' ? (
             <HoldingsTable
               holdings={convertedPortfolio ? 
                 convertedPortfolio.stocks.map(s => ({
@@ -234,27 +462,32 @@ const App: React.FC = () => {
                   transactions: []
                 })) : portfolio.holdings
               }
-              displayCurrency={convertedPortfolio?.displayCurrency || 'USD'}
+              displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
               onEditHolding={(holding) => {
-                // Find transactions for this holding
                 const holdingTransactions = portfolio.transactions.filter(t => t.symbol === holding.symbol);
                 if (holdingTransactions.length > 0) {
                   handleEditTransaction(holdingTransactions[0]);
                 }
               }}
-              onViewTransactions={() => {
-                setActiveTab('transactions');
-              }}
+              onViewTransactions={() => setActiveTab('transactions')}
             />
-          ) : (
+          ) : activeTab === 'transactions' ? (
             <TransactionsTable
               transactions={portfolio.transactions}
-              displayCurrency={convertedPortfolio?.displayCurrency || 'USD'}
+              displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
               onEditTransaction={handleEditTransaction}
               onDeleteTransaction={deleteTransaction}
               onAddTransaction={handleAddTransaction}
             />
-          )}
+          ) : activeTab === 'liabilities' ? (
+            <LiabilitiesTable
+              liabilities={liabilities}
+              displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+              onEditLiability={handleEditLiability}
+              onDeleteLiability={deleteLiability}
+              onAddLiability={handleAddLiability}
+            />
+          ) : null}
         </div>
       </main>
 
@@ -267,6 +500,17 @@ const App: React.FC = () => {
         }}
         onSaveTransaction={handleSaveTransaction}
         editingTransaction={editingTransaction}
+      />
+
+      {/* Liability Modal */}
+      <LiabilityModal
+        isOpen={isLiabilityModalOpen}
+        onClose={() => {
+          setIsLiabilityModalOpen(false);
+          setEditingLiability(null);
+        }}
+        onSaveLiability={handleSaveLiability}
+        editingLiability={editingLiability}
       />
 
     </div>
