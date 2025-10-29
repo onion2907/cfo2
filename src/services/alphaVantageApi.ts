@@ -58,7 +58,31 @@ export interface QuoteResponse {
   };
 }
 
+export interface ExchangeRateResponse {
+  'Realtime Currency Exchange Rate': {
+    '1. From_Currency Code': string;
+    '2. From_Currency Name': string;
+    '3. To_Currency Code': string;
+    '4. To_Currency Name': string;
+    '5. Exchange Rate': string;
+    '6. Last Refreshed': string;
+    '7. Time Zone': string;
+    '8. Bid Price': string;
+    '9. Ask Price': string;
+  };
+}
+
+export interface ExchangeRate {
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  lastRefreshed: string;
+}
+
 class AlphaVantageAPI {
+  private exchangeRateCache: Map<string, { rate: ExchangeRate; timestamp: number }> = new Map();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
   private async makeRequest<T>(params: Record<string, string>): Promise<T> {
     const url = new URL(BASE_URL);
     url.searchParams.append('apikey', API_KEY);
@@ -219,6 +243,64 @@ class AlphaVantageAPI {
       console.error('Error fetching stock info:', error);
       throw new Error(`Failed to fetch information for ${symbol}. Please try again.`);
     }
+  }
+
+  async getExchangeRate(fromCurrency: string, toCurrency: string): Promise<ExchangeRate> {
+    const cacheKey = `${fromCurrency}_${toCurrency}`;
+    const now = Date.now();
+    
+    // Check cache first
+    const cached = this.exchangeRateCache.get(cacheKey);
+    if (cached && (now - cached.timestamp) < this.CACHE_DURATION) {
+      return cached.rate;
+    }
+
+    try {
+      const data = await this.makeRequest<ExchangeRateResponse>({
+        function: 'CURRENCY_EXCHANGE_RATE',
+        from_currency: fromCurrency,
+        to_currency: toCurrency
+      });
+
+      if (!data['Realtime Currency Exchange Rate']) {
+        throw new Error(`No exchange rate data found for ${fromCurrency} to ${toCurrency}`);
+      }
+
+      const exchangeData = data['Realtime Currency Exchange Rate'];
+      const rate: ExchangeRate = {
+        fromCurrency: exchangeData['1. From_Currency Code'],
+        toCurrency: exchangeData['3. To_Currency Code'],
+        rate: parseFloat(exchangeData['5. Exchange Rate']),
+        lastRefreshed: exchangeData['6. Last Refreshed']
+      };
+
+      // Cache the result
+      this.exchangeRateCache.set(cacheKey, { rate, timestamp: now });
+
+      return rate;
+    } catch (error) {
+      console.error('Error fetching exchange rate:', error);
+      throw new Error(`Failed to fetch exchange rate for ${fromCurrency} to ${toCurrency}. Please try again.`);
+    }
+  }
+
+  async convertCurrency(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
+    if (fromCurrency === toCurrency) {
+      return amount;
+    }
+
+    try {
+      const exchangeRate = await this.getExchangeRate(fromCurrency, toCurrency);
+      return amount * exchangeRate.rate;
+    } catch (error) {
+      console.error('Error converting currency:', error);
+      throw new Error(`Failed to convert ${amount} ${fromCurrency} to ${toCurrency}`);
+    }
+  }
+
+  // Get all supported currencies
+  getSupportedCurrencies(): string[] {
+    return ['USD', 'INR', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'SGD'];
   }
 }
 
