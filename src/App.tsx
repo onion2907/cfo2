@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Portfolio, Transaction, Liability, Holding } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
 import HoldingsTable from './components/HoldingsTable';
@@ -12,7 +12,7 @@ import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOl
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
 import { formatCurrency } from './utils/currency';
 import { useRefresh } from './hooks/useRefresh';
-import { indianStockAPI } from './services/indianStockApi';
+// import { indianStockAPI } from './services/indianStockApi'; // Removed as not used directly in App.tsx
 import { Plus, TrendingUp, CreditCard, DollarSign, RefreshCw } from 'lucide-react';
 
 const STORAGE_KEY = 'stock-portfolio';
@@ -60,10 +60,11 @@ const App: React.FC = () => {
   // Refresh functionality
   const {
     isRefreshing,
-    lastRefreshTime,
     refreshError,
     refreshPortfolio,
-    refreshAllData
+    refreshAllData,
+    hasStaleData,
+    initializeRefreshTime
   } = useRefresh();
 
   // Load portfolio from localStorage on mount
@@ -77,9 +78,25 @@ const App: React.FC = () => {
         if (parsedPortfolio.stocks && !parsedPortfolio.holdings) {
           const { holdings, transactions } = migrateOldPortfolio(parsedPortfolio.stocks);
           const metrics = calculatePortfolioMetrics(holdings);
-          setPortfolio({ holdings, transactions, metrics });
+          setPortfolio({ 
+            holdings, 
+            transactions, 
+            metrics,
+            lastUpdated: new Date().toISOString(),
+            lastRefreshTime: parsedPortfolio.lastRefreshTime || new Date().toISOString()
+          });
         } else {
-          setPortfolio(parsedPortfolio);
+          // Ensure timestamps are present
+          setPortfolio({
+            ...parsedPortfolio,
+            lastUpdated: parsedPortfolio.lastUpdated || new Date().toISOString(),
+            lastRefreshTime: parsedPortfolio.lastRefreshTime || new Date().toISOString()
+          });
+          
+          // Initialize refresh hook with saved refresh time
+          if (parsedPortfolio.lastRefreshTime) {
+            initializeRefreshTime(parsedPortfolio.lastRefreshTime);
+          }
         }
       } catch (error) {
         console.error('Error loading portfolio:', error);
@@ -116,7 +133,11 @@ const App: React.FC = () => {
 
   // Save portfolio to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolio));
+    const portfolioWithTimestamp = {
+      ...portfolio,
+      lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolioWithTimestamp));
   }, [portfolio]);
 
   // Save liabilities to localStorage whenever they change
@@ -144,58 +165,27 @@ const App: React.FC = () => {
     setPortfolio(prev => ({ ...prev, holdings, metrics }));
   }, [portfolio.transactions]);
 
-  // Fetch current prices for holdings on initial load
+  // Check if data is stale (older than 1 hour)
+  const checkDataStaleness = useCallback(() => {
+    if (portfolio.lastRefreshTime) {
+      const lastRefresh = new Date(portfolio.lastRefreshTime);
+      const now = new Date();
+      const hoursDiff = (now.getTime() - lastRefresh.getTime()) / (1000 * 60 * 60);
+      return hoursDiff > 1; // Consider data stale after 1 hour
+    }
+    return false;
+  }, [portfolio.lastRefreshTime]);
+
+  // Check for stale data on mount and when portfolio changes
   useEffect(() => {
-    const fetchInitialPrices = async () => {
-      if (portfolio.holdings.length > 0) {
-        console.log('Fetching initial current prices for holdings...');
-        try {
-          const symbols = [...new Set(portfolio.holdings.map(h => h.symbol))];
-          const pricePromises = symbols.map(async (symbol) => {
-            try {
-              const quote = await indianStockAPI.getStockQuote(symbol);
-              return quote ? { symbol, price: quote.currentPrice } : null;
-            } catch (error) {
-              console.error(`Error fetching price for ${symbol}:`, error);
-              return null;
-            }
-          });
+    const isStale = checkDataStaleness();
+    if (isStale) {
+      console.log('Data is stale - user should refresh');
+    }
+  }, [checkDataStaleness]);
 
-          const priceResults = await Promise.all(pricePromises);
-          const currentPrices = new Map(
-            priceResults
-              .filter(result => result !== null)
-              .map(result => [result!.symbol, result!.price])
-          );
-
-          if (currentPrices.size > 0) {
-            const updatedHoldings = portfolio.holdings.map(holding => {
-              const currentPrice = currentPrices.get(holding.symbol);
-              if (currentPrice && currentPrice > 0) {
-                return {
-                  ...holding,
-                  lastTradedPrice: currentPrice,
-                  currentValue: holding.totalQuantity * currentPrice,
-                  profitLoss: (holding.totalQuantity * currentPrice) - (holding.totalQuantity * holding.averageCost),
-                  profitLossPercent: holding.averageCost > 0 ? 
-                    (((holding.totalQuantity * currentPrice) - (holding.totalQuantity * holding.averageCost)) / (holding.totalQuantity * holding.averageCost)) * 100 : 0
-                };
-              }
-              return holding;
-            });
-
-            const updatedMetrics = calculatePortfolioMetrics(updatedHoldings);
-            setPortfolio(prev => ({ ...prev, holdings: updatedHoldings, metrics: updatedMetrics }));
-            console.log('Initial prices fetched and holdings updated');
-          }
-        } catch (error) {
-          console.error('Error fetching initial prices:', error);
-        }
-      }
-    };
-
-    fetchInitialPrices();
-  }, []); // Only run once on mount
+  // Note: Removed automatic price fetching on mount to preserve saved data
+  // Prices will only be updated when user explicitly clicks refresh button
 
   // Calculate balance sheet
   const balanceSheet = calculateBalanceSheet(
@@ -340,7 +330,8 @@ const App: React.FC = () => {
       setPortfolio(prev => ({
         ...prev,
         holdings,
-        metrics
+        metrics,
+        lastRefreshTime: new Date().toISOString()
       }));
       
       console.log('Refresh completed successfully');
@@ -360,14 +351,21 @@ const App: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">Portfolio Tracker</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Currency: ₹ INR</span>
-                {lastRefreshTime && (
-                  <span className="text-xs text-gray-500">
-                    Last updated: {lastRefreshTime.toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Currency: ₹ INR</span>
+                    {portfolio.lastRefreshTime && (
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-xs ${hasStaleData ? 'text-orange-600' : 'text-gray-500'}`}>
+                          Last updated: {new Date(portfolio.lastRefreshTime).toLocaleString()}
+                        </span>
+                        {hasStaleData && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            Stale Data
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleRefresh}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { indianStockAPI } from '../services/indianStockApi';
 import { Transaction, Holding } from '../types/portfolio';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics } from '../utils/portfolioCalculations';
@@ -9,12 +9,39 @@ export interface UseRefreshReturn {
   refreshError: string | null;
   refreshPortfolio: (transactions: Transaction[]) => Promise<{ holdings: Holding[]; metrics: any }>;
   refreshAllData: () => Promise<void>;
+  hasStaleData: boolean;
+  initializeRefreshTime: (lastRefreshTime: string | null) => void;
 }
 
 export const useRefresh = (): UseRefreshReturn => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [hasStaleData, setHasStaleData] = useState(false);
+
+  // Check if data is stale based on last refresh time
+  const checkStaleness = useCallback((lastRefreshTime: Date | null) => {
+    if (lastRefreshTime) {
+      const now = new Date();
+      const hoursDiff = (now.getTime() - lastRefreshTime.getTime()) / (1000 * 60 * 60);
+      return hoursDiff > 1; // Consider data stale after 1 hour
+    }
+    return false;
+  }, []);
+
+  // Update stale data status when lastRefreshTime changes
+  React.useEffect(() => {
+    const isStale = checkStaleness(lastRefreshTime);
+    setHasStaleData(isStale);
+  }, [lastRefreshTime, checkStaleness]);
+
+  // Initialize refresh time from saved data
+  const initializeRefreshTime = useCallback((lastRefreshTimeString: string | null) => {
+    if (lastRefreshTimeString) {
+      const refreshTime = new Date(lastRefreshTimeString);
+      setLastRefreshTime(refreshTime);
+    }
+  }, []);
 
   const refreshPortfolio = useCallback(async (transactions: Transaction[]) => {
     setIsRefreshing(true);
@@ -64,7 +91,9 @@ export const useRefresh = (): UseRefreshReturn => {
       
       const metrics = calculatePortfolioMetrics(holdings);
 
-      setLastRefreshTime(new Date());
+      const refreshTime = new Date();
+      setLastRefreshTime(refreshTime);
+      setHasStaleData(false);
       
       return { holdings, metrics };
     } catch (error) {
@@ -84,7 +113,9 @@ export const useRefresh = (): UseRefreshReturn => {
     try {
       console.log('Refreshing all API data...');
       await indianStockAPI.refreshAllData();
-      setLastRefreshTime(new Date());
+      const refreshTime = new Date();
+      setLastRefreshTime(refreshTime);
+      setHasStaleData(false);
       console.log('All data refreshed successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to refresh data';
@@ -101,6 +132,8 @@ export const useRefresh = (): UseRefreshReturn => {
     lastRefreshTime,
     refreshError,
     refreshPortfolio,
-    refreshAllData
+    refreshAllData,
+    hasStaleData,
+    initializeRefreshTime
   };
 };

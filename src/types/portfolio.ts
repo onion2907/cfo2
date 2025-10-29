@@ -117,4 +117,6 @@ export interface Portfolio {
   holdings: Holding[];
   transactions: Transaction[];
   metrics: PortfolioMetrics;
+  lastUpdated?: string;
+  lastRefreshTime?: string;
 }
