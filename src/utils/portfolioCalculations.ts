@@ -20,6 +20,7 @@ export const calculateHoldingsFromTransactions = (transactions: Transaction[]): 
         dayChange: 0,
         dayChangePercent: 0,
         currency: transaction.currency,
+        exchange: transaction.exchange,
         transactions: []
       });
     }
@@ -92,7 +93,8 @@ export const migrateOldPortfolio = (oldStocks: any[]): { holdings: Holding[], tr
     quantity: stock.shares,
     price: stock.purchasePrice,
     date: stock.purchaseDate,
-    currency: stock.currency || 'USD',
+    currency: 'INR',
+    exchange: 'NSE',
     notes: 'Migrated from old portfolio'
   }));
 

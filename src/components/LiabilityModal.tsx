@@ -22,7 +22,6 @@ const LIABILITY_TYPES: Liability['type'][] = [
   'OTHER'
 ];
 
-const CURRENCIES = ['USD', 'INR', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'SGD'];
 
 const LiabilityModal: React.FC<LiabilityModalProps> = ({
   isOpen,
@@ -41,7 +40,7 @@ const LiabilityModal: React.FC<LiabilityModalProps> = ({
     monthlyPayment: '',
     startDate: '',
     endDate: '',
-    currency: 'USD',
+    currency: 'INR' as const,
     lender: '',
     description: '',
     isActive: true
@@ -79,7 +78,7 @@ const LiabilityModal: React.FC<LiabilityModalProps> = ({
         monthlyPayment: '',
         startDate: '',
         endDate: '',
-        currency: 'USD',
+        currency: 'INR' as const,
         lender: '',
         description: '',
         isActive: true
@@ -271,15 +270,7 @@ const LiabilityModal: React.FC<LiabilityModalProps> = ({
                   placeholder="0.00"
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <select
-                    value={formData.currency}
-                    onChange={(e) => handleInputChange('currency', e.target.value)}
-                    className="text-sm text-gray-500 bg-transparent border-none focus:ring-0"
-                  >
-                    {CURRENCIES.map(currency => (
-                      <option key={currency} value={currency}>{currency}</option>
-                    ))}
-                  </select>
+                  <span className="text-sm text-gray-500">₹</span>
                 </div>
               </div>
               {errors.originalAmount && (

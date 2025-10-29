@@ -6,7 +6,9 @@ export interface Stock {
   purchasePrice: number;
   currentPrice: number;
   purchaseDate: string;
-  currency: string;
+  currency: 'INR';
+  exchange: 'BSE' | 'NSE';
+  sector?: string;
 }
 
 export interface Transaction {
@@ -17,7 +19,8 @@ export interface Transaction {
   quantity: number;
   price: number;
   date: string;
-  currency: string;
+  currency: 'INR';
+  exchange: 'BSE' | 'NSE';
   notes?: string;
 }
 
@@ -32,7 +35,9 @@ export interface Holding {
   profitLossPercent: number;
   dayChange: number;
   dayChangePercent: number;
-  currency: string;
+  currency: 'INR';
+  exchange: 'BSE' | 'NSE';
+  sector?: string;
   transactions: Transaction[];
 }
 
@@ -58,7 +63,7 @@ export interface Liability {
   monthlyPayment: number;
   startDate: string;
   endDate?: string;
-  currency: string;
+  currency: 'INR';
   lender?: string;
   description?: string;
   isActive: boolean;
@@ -71,7 +76,7 @@ export interface LiabilityPayment {
   paymentDate: string;
   paymentType: 'PRINCIPAL' | 'INTEREST' | 'BOTH';
   notes?: string;
-  currency: string;
+  currency: 'INR';
 }
 
 export interface LiabilityMetrics {

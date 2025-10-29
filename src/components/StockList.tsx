@@ -24,7 +24,9 @@ const StockList: React.FC<StockListProps> = ({ stocks, onUpdateStock, onRemoveSt
       purchasePrice: stock.purchasePrice,
       currentPrice: stock.currentPrice,
       purchaseDate: stock.purchaseDate,
-      currency: stock.currency
+      currency: stock.currency,
+      exchange: 'exchange' in stock ? stock.exchange : 'NSE',
+      sector: 'sector' in stock ? stock.sector : undefined
     };
     setEditingStock(baseStock);
   };

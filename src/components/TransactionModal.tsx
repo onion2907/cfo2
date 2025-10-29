@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
-import { useStockSearch } from '../hooks/useStockSearch';
+import { useIndianStockSearch } from '../hooks/useIndianStockSearch';
 import { formatCurrency } from '../utils/currency';
 import { Transaction } from '../types/portfolio';
 
@@ -26,7 +26,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     stockQuote,
     isLoading,
     error
-  } = useStockSearch();
+  } = useIndianStockSearch();
 
   const [formData, setFormData] = useState({
     type: 'BUY' as 'BUY' | 'SELL',
@@ -53,13 +53,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         selectStock({
           symbol: editingTransaction.symbol,
           name: editingTransaction.name,
-          type: 'Equity',
-          region: 'US',
-          marketOpen: '09:30',
-          marketClose: '16:00',
-          timezone: 'UTC-05',
-          currency: editingTransaction.currency,
-          matchScore: '1.0000'
+          exchange: editingTransaction.exchange,
+          currency: editingTransaction.currency
         });
       } else {
         setFormData({
@@ -81,7 +76,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     if (stockQuote && !editingTransaction) {
       setFormData(prev => ({
         ...prev,
-        price: stockQuote.price.toString()
+        price: stockQuote.currentPrice.toString()
       }));
     }
   }, [stockQuote, editingTransaction]);
@@ -120,7 +115,8 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         quantity: Number(formData.quantity),
         price: Number(formData.price),
         date: formData.date,
-        currency: stockQuote.currency,
+        currency: 'INR',
+        exchange: selectedStock.exchange,
         notes: formData.notes || undefined
       });
       
@@ -238,7 +234,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
                   {stockQuote && (
                     <div className="text-right">
                       <div className="font-semibold text-gray-900">
-                        {formatCurrency(stockQuote.price, stockQuote.currency)}
+                        {formatCurrency(stockQuote.currentPrice, stockQuote.currency)}
                       </div>
                       <div className={`text-sm flex items-center ${
                         stockQuote.change >= 0 ? 'text-green-600' : 'text-red-600'
@@ -300,7 +296,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               />
               {stockQuote && (
                 <p className="mt-1 text-xs text-gray-500">
-                  Current price: {formatCurrency(stockQuote.price, stockQuote.currency)}
+                  Current price: {formatCurrency(stockQuote.currentPrice, stockQuote.currency)}
                 </p>
               )}
               {errors.price && (

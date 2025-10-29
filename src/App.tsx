@@ -7,12 +7,10 @@ import LiabilitiesTable from './components/LiabilitiesTable';
 import BalanceSheetSummary from './components/BalanceSheetSummary';
 import TransactionModal from './components/TransactionModal';
 import LiabilityModal from './components/LiabilityModal';
-import CurrencySelector from './components/CurrencySelector';
-import { useCurrencyConversion } from './hooks/useCurrencyConversion';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
 import { formatCurrency } from './utils/currency';
-import { Plus, TrendingUp, RefreshCw, CreditCard, DollarSign } from 'lucide-react';
+import { Plus, TrendingUp, CreditCard, DollarSign } from 'lucide-react';
 
 const STORAGE_KEY = 'stock-portfolio';
 const LIABILITIES_STORAGE_KEY = 'liabilities';
@@ -40,26 +38,8 @@ const App: React.FC = () => {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
 
-  // Currency conversion hook - using holdings for conversion
-  const {
-    selectedCurrency,
-    convertedPortfolio,
-    isLoading: isConverting,
-    error: conversionError,
-    usingFallbackRates,
-    setSelectedCurrency,
-    refreshConversion,
-    supportedCurrencies
-  } = useCurrencyConversion(portfolio.holdings.map(h => ({
-    id: h.symbol,
-    symbol: h.symbol,
-    name: h.name,
-    shares: h.totalQuantity,
-    purchasePrice: h.averageCost,
-    currentPrice: h.lastTradedPrice,
-    purchaseDate: new Date().toISOString().split('T')[0],
-    currency: h.currency
-  })));
+  // Focus on INR currency only
+  const selectedCurrency = 'INR';
 
   // Load portfolio from localStorage on mount
   useEffect(() => {
@@ -246,21 +226,7 @@ const App: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">Display in:</span>
-                <CurrencySelector
-                  selectedCurrency={selectedCurrency}
-                  onCurrencyChange={setSelectedCurrency}
-                  supportedCurrencies={supportedCurrencies}
-                  isLoading={isConverting}
-                />
-                <button
-                  onClick={refreshConversion}
-                  disabled={isConverting}
-                  className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors duration-200 disabled:opacity-50"
-                  title="Refresh exchange rates"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isConverting ? 'animate-spin' : ''}`} />
-                </button>
+                <span className="text-sm text-gray-600">Currency: ₹ INR</span>
               </div>
               <div className="flex items-center space-x-2">
                 {activeTab === 'transactions' && (
@@ -289,47 +255,21 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {conversionError && (
-          <div className="mb-6 p-4 bg-danger-50 border border-danger-200 rounded-lg">
-            <p className="text-sm text-danger-600">
-              Currency conversion error: {conversionError}
-            </p>
-          </div>
-        )}
-        
-        {usingFallbackRates && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              ⚠️ Using fallback exchange rates due to API rate limits. Values may not be current.
-            </p>
-          </div>
-        )}
         
         {/* Balance Sheet Summary */}
         {activeTab === 'balance-sheet' && (
           <BalanceSheetSummary
             balanceSheet={balanceSheet}
-            displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+            displayCurrency={selectedCurrency}
           />
         )}
 
         {/* Portfolio Summary for other tabs */}
         {activeTab !== 'balance-sheet' && (
-          convertedPortfolio ? (
-            <PortfolioSummary 
-              metrics={{
-                totalValue: convertedPortfolio.totalValue,
-                totalCost: convertedPortfolio.totalCost,
-                totalGainLoss: convertedPortfolio.totalGainLoss,
-                totalGainLossPercentage: convertedPortfolio.totalGainLossPercentage,
-                dayChange: 0, // TODO: Implement day change calculation
-                dayChangePercentage: 0
-              }}
-              displayCurrency={convertedPortfolio.displayCurrency}
-            />
-          ) : (
-            <PortfolioSummary metrics={portfolio.metrics} />
-          )
+          <PortfolioSummary 
+            metrics={portfolio.metrics}
+            displayCurrency={selectedCurrency}
+          />
         )}
 
         {/* Tab Navigation */}
@@ -383,23 +323,8 @@ const App: React.FC = () => {
                   <div>
                     <h4 className="text-md font-medium text-gray-700 mb-3">Stock Portfolio</h4>
                     <HoldingsTable
-                      holdings={convertedPortfolio ? 
-                        convertedPortfolio.stocks.map(s => ({
-                          symbol: s.symbol,
-                          name: s.name,
-                          totalQuantity: s.shares,
-                          averageCost: s.purchasePrice,
-                          lastTradedPrice: s.currentPrice,
-                          currentValue: s.shares * s.currentPrice,
-                          profitLoss: (s.shares * s.currentPrice) - (s.shares * s.purchasePrice),
-                          profitLossPercent: s.purchasePrice > 0 ? ((s.currentPrice - s.purchasePrice) / s.purchasePrice) * 100 : 0,
-                          dayChange: 0,
-                          dayChangePercent: 0,
-                          currency: s.currency,
-                          transactions: []
-                        })) : portfolio.holdings
-                      }
-                      displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+                      holdings={portfolio.holdings}
+                      displayCurrency={selectedCurrency}
                       onEditHolding={(holding) => {
                         const holdingTransactions = portfolio.transactions.filter(t => t.symbol === holding.symbol);
                         if (holdingTransactions.length > 0) {
@@ -415,13 +340,13 @@ const App: React.FC = () => {
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="text-sm text-gray-600">Cash</span>
                         <span className="text-sm font-medium text-gray-900">
-                          {formatCurrency(cash, convertedPortfolio?.displayCurrency || selectedCurrency)}
+                          {formatCurrency(cash, selectedCurrency)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="text-sm text-gray-600">Other Assets</span>
                         <span className="text-sm font-medium text-gray-900">
-                          {formatCurrency(otherAssets, convertedPortfolio?.displayCurrency || selectedCurrency)}
+                          {formatCurrency(otherAssets, selectedCurrency)}
                         </span>
                       </div>
                     </div>
@@ -437,7 +362,7 @@ const App: React.FC = () => {
                 </h3>
                 <LiabilitiesTable
                   liabilities={liabilities}
-                  displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+                  displayCurrency={selectedCurrency}
                   onEditLiability={handleEditLiability}
                   onDeleteLiability={deleteLiability}
                   onAddLiability={handleAddLiability}
@@ -446,23 +371,8 @@ const App: React.FC = () => {
             </div>
           ) : activeTab === 'holdings' ? (
             <HoldingsTable
-              holdings={convertedPortfolio ? 
-                convertedPortfolio.stocks.map(s => ({
-                  symbol: s.symbol,
-                  name: s.name,
-                  totalQuantity: s.shares,
-                  averageCost: s.purchasePrice,
-                  lastTradedPrice: s.currentPrice,
-                  currentValue: s.shares * s.currentPrice,
-                  profitLoss: (s.shares * s.currentPrice) - (s.shares * s.purchasePrice),
-                  profitLossPercent: s.purchasePrice > 0 ? ((s.currentPrice - s.purchasePrice) / s.purchasePrice) * 100 : 0,
-                  dayChange: 0,
-                  dayChangePercent: 0,
-                  currency: s.currency,
-                  transactions: []
-                })) : portfolio.holdings
-              }
-              displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+              holdings={portfolio.holdings}
+              displayCurrency={selectedCurrency}
               onEditHolding={(holding) => {
                 const holdingTransactions = portfolio.transactions.filter(t => t.symbol === holding.symbol);
                 if (holdingTransactions.length > 0) {
@@ -474,7 +384,7 @@ const App: React.FC = () => {
           ) : activeTab === 'transactions' ? (
             <TransactionsTable
               transactions={portfolio.transactions}
-              displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+              displayCurrency={selectedCurrency}
               onEditTransaction={handleEditTransaction}
               onDeleteTransaction={deleteTransaction}
               onAddTransaction={handleAddTransaction}
@@ -482,7 +392,7 @@ const App: React.FC = () => {
           ) : activeTab === 'liabilities' ? (
             <LiabilitiesTable
               liabilities={liabilities}
-              displayCurrency={convertedPortfolio?.displayCurrency || selectedCurrency}
+              displayCurrency={selectedCurrency}
               onEditLiability={handleEditLiability}
               onDeleteLiability={deleteLiability}
               onAddLiability={handleAddLiability}

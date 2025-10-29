@@ -60,7 +60,9 @@ const StockCard: React.FC<StockCardProps> = ({ stock, onEdit, onRemove }) => {
                 purchasePrice: stock.purchasePrice,
                 currentPrice: stock.currentPrice,
                 purchaseDate: stock.purchaseDate,
-                currency: stock.currency
+                currency: stock.currency,
+                exchange: 'exchange' in stock ? stock.exchange : 'NSE',
+                sector: 'sector' in stock ? stock.sector : undefined
               };
               onEdit(baseStock);
             }}

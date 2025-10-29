@@ -142,8 +142,8 @@ export const getLiabilityTermColor = (term: Liability['term']): string => {
   return term === 'SHORT_TERM' ? 'text-orange-600' : 'text-blue-600';
 };
 
-export const formatLiabilityAmount = (amount: number, currency: string): string => {
-  return new Intl.NumberFormat('en-US', {
+export const formatLiabilityAmount = (amount: number, currency: string = 'INR'): string => {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: 2,
