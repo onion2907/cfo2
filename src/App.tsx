@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Portfolio, Transaction, Liability } from './types/portfolio';
+import { Portfolio, Transaction, Liability, Holding } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
 import HoldingsTable from './components/HoldingsTable';
 import TransactionsTable from './components/TransactionsTable';
@@ -7,6 +7,7 @@ import LiabilitiesTable from './components/LiabilitiesTable';
 import BalanceSheetSummary from './components/BalanceSheetSummary';
 import TransactionModal from './components/TransactionModal';
 import LiabilityModal from './components/LiabilityModal';
+import ConfirmDialog from './components/ConfirmDialog';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
 import { formatCurrency } from './utils/currency';
@@ -39,6 +40,19 @@ const App: React.FC = () => {
   const [isLiabilityModalOpen, setIsLiabilityModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger'
+  });
 
   // Focus on INR currency only
   const selectedCurrency = 'INR';
@@ -218,6 +232,35 @@ const App: React.FC = () => {
       ...prev,
       transactions: prev.transactions.filter(transaction => transaction.id !== id)
     }));
+  };
+
+  const handleDeleteTransaction = (transactionId: string) => {
+    const transaction = portfolio.transactions.find(t => t.id === transactionId);
+    if (transaction) {
+      setConfirmDialog({
+        isOpen: true,
+        title: 'Delete Transaction',
+        message: `Are you sure you want to delete the ${transaction.type} transaction for ${transaction.symbol}? This action cannot be undone.`,
+        onConfirm: () => deleteTransaction(transactionId),
+        type: 'danger'
+      });
+    }
+  };
+
+  const handleDeleteHolding = (holding: Holding) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Asset',
+      message: `Are you sure you want to delete all transactions for ${holding.symbol} (${holding.name})? This will remove the entire holding from your portfolio. This action cannot be undone.`,
+      onConfirm: () => {
+        // Delete all transactions for this symbol
+        setPortfolio(prev => ({
+          ...prev,
+          transactions: prev.transactions.filter(transaction => transaction.symbol !== holding.symbol)
+        }));
+      },
+      type: 'danger'
+    });
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -445,6 +488,7 @@ const App: React.FC = () => {
                         }
                       }}
                       onViewTransactions={() => setActiveTab('transactions')}
+                      onDeleteHolding={handleDeleteHolding}
                     />
                   </div>
                   <div>
@@ -493,13 +537,14 @@ const App: React.FC = () => {
                 }
               }}
               onViewTransactions={() => setActiveTab('transactions')}
+              onDeleteHolding={handleDeleteHolding}
             />
           ) : activeTab === 'transactions' ? (
             <TransactionsTable
               transactions={portfolio.transactions}
               displayCurrency={selectedCurrency}
               onEditTransaction={handleEditTransaction}
-              onDeleteTransaction={deleteTransaction}
+              onDeleteTransaction={handleDeleteTransaction}
               onAddTransaction={handleAddTransaction}
             />
           ) : activeTab === 'liabilities' ? (
@@ -534,6 +579,16 @@ const App: React.FC = () => {
         }}
         onSaveLiability={handleSaveLiability}
         editingLiability={editingLiability}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
       />
 
     </div>

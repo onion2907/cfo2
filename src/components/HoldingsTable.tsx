@@ -1,20 +1,22 @@
 import React from 'react';
 import { Holding } from '../types/portfolio';
 import { formatCurrency } from '../utils/currency';
-import { TrendingUp, TrendingDown, Edit2, Eye } from 'lucide-react';
+import { TrendingUp, TrendingDown, Edit2, Eye, Trash2 } from 'lucide-react';
 
 interface HoldingsTableProps {
   holdings: Holding[];
   displayCurrency?: string;
   onEditHolding?: (holding: Holding) => void;
   onViewTransactions?: (holding: Holding) => void;
+  onDeleteHolding?: (holding: Holding) => void;
 }
 
 const HoldingsTable: React.FC<HoldingsTableProps> = ({
   holdings,
   displayCurrency = 'USD',
   onEditHolding,
-  onViewTransactions
+  onViewTransactions,
+  onDeleteHolding
 }) => {
   const formatAmount = (amount: number, currency: string = displayCurrency) => {
     return formatCurrency(amount, currency);
@@ -170,6 +172,13 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({
                       title="Edit Holding"
                     >
                       <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteHolding?.(holding)}
+                      className="text-red-600 hover:text-red-900 p-1"
+                      title="Delete Asset"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </td>
