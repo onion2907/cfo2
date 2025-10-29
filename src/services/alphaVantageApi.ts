@@ -26,6 +26,7 @@ export interface StockQuote {
   open: number;
   previousClose: number;
   timestamp: string;
+  currency: string;
 }
 
 export interface SearchResponse {
@@ -136,6 +137,9 @@ class AlphaVantageAPI {
 
       const quote = data['Global Quote'];
       
+      // Determine currency based on symbol
+      const currency = this.getCurrencyFromSymbol(symbol);
+      
       return {
         symbol: quote['01. symbol'],
         name: '', // We'll need to get this from search or another endpoint
@@ -148,12 +152,52 @@ class AlphaVantageAPI {
         low: parseFloat(quote['04. low']),
         open: parseFloat(quote['02. open']),
         previousClose: parseFloat(quote['08. previous close']),
-        timestamp: quote['07. latest trading day']
+        timestamp: quote['07. latest trading day'],
+        currency: currency
       };
     } catch (error) {
       console.error('Error fetching stock quote:', error);
       throw new Error(`Failed to fetch quote for ${symbol}. Please try again.`);
     }
+  }
+
+  private getCurrencyFromSymbol(symbol: string): string {
+    const upperSymbol = symbol.toUpperCase();
+    
+    // Indian stocks (BSE/NSE)
+    if (upperSymbol.includes('.BSE') || upperSymbol.includes('.NSE') || 
+        upperSymbol.includes('.BO') || upperSymbol.includes('.NS')) {
+      return 'INR';
+    }
+    
+    // European stocks
+    if (upperSymbol.includes('.L') || upperSymbol.includes('.PA') || 
+        upperSymbol.includes('.F') || upperSymbol.includes('.DE')) {
+      return 'EUR';
+    }
+    
+    // UK stocks
+    if (upperSymbol.includes('.LON')) {
+      return 'GBP';
+    }
+    
+    // Japanese stocks
+    if (upperSymbol.includes('.T') || upperSymbol.includes('.TO')) {
+      return 'JPY';
+    }
+    
+    // Canadian stocks
+    if (upperSymbol.includes('.TO') || upperSymbol.includes('.V')) {
+      return 'CAD';
+    }
+    
+    // Australian stocks
+    if (upperSymbol.includes('.AX')) {
+      return 'AUD';
+    }
+    
+    // Default to USD for US stocks and others
+    return 'USD';
   }
 
   async getStockInfo(symbol: string): Promise<{ name: string; price: number }> {

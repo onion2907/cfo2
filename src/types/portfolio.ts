@@ -6,6 +6,7 @@ export interface Stock {
   purchasePrice: number;
   currentPrice: number;
   purchaseDate: string;
+  currency: string;
 }
 
 export interface PortfolioMetrics {
