@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { useStockSearch } from '../hooks/useStockSearch';
-import { formatCurrency, getCurrencySymbol } from '../utils/currency';
+import { formatCurrency } from '../utils/currency';
 
 interface AddStockModalV2Props {
   isOpen: boolean;
