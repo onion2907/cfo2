@@ -149,6 +149,7 @@ const App: React.FC = () => {
   };
 
   const deleteTransaction = (id: string) => {
+    console.log('Deleting transaction:', id);
     setPortfolio(prev => ({
       ...prev,
       transactions: prev.transactions.filter(transaction => transaction.id !== id)
@@ -156,6 +157,7 @@ const App: React.FC = () => {
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
+    console.log('Editing transaction:', transaction);
     setEditingTransaction(transaction);
     setIsTransactionModalOpen(true);
   };
@@ -166,12 +168,14 @@ const App: React.FC = () => {
   };
 
   const handleSaveTransaction = (transaction: Omit<Transaction, 'id'>) => {
+    console.log('Saving transaction:', transaction, 'Editing:', editingTransaction);
     if (editingTransaction) {
       updateTransaction(editingTransaction.id, transaction);
     } else {
       addTransaction(transaction);
     }
     setEditingTransaction(null);
+    setIsTransactionModalOpen(false);
   };
 
   // Liability management functions

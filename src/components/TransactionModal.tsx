@@ -107,18 +107,20 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm() && selectedStock && stockQuote) {
-      onSaveTransaction({
+    if (validateForm() && selectedStock) {
+      const transactionData = {
         symbol: selectedStock.symbol,
         name: selectedStock.name,
         type: formData.type,
         quantity: Number(formData.quantity),
         price: Number(formData.price),
         date: formData.date,
-        currency: 'INR',
+        currency: 'INR' as const,
         exchange: selectedStock.exchange,
         notes: formData.notes || undefined
-      });
+      };
+
+      onSaveTransaction(transactionData);
       
       // Reset form
       setFormData({
@@ -130,7 +132,6 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
       });
       setSearchQuery('');
       selectStock(undefined);
-      onClose();
     }
   };
 
