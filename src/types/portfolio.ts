@@ -54,19 +54,42 @@ export interface PortfolioMetrics {
 export interface Liability {
   id: string;
   name: string;
-  type: 'LOAN' | 'CREDIT_CARD' | 'PAYABLE' | 'COMMITTED_EXPENSE' | 'MORTGAGE' | 'PERSONAL_LOAN' | 'STUDENT_LOAN' | 'CAR_LOAN' | 'OTHER';
-  category: 'SECURED' | 'UNSECURED';
-  term: 'SHORT_TERM' | 'LONG_TERM';
-  originalAmount: number;
-  currentBalance: number;
-  interestRate: number;
-  monthlyPayment: number;
-  startDate: string;
-  endDate?: string;
+  type: 'MORTGAGE' | 'CAR_LOAN' | 'PERSONAL_LOAN' | 'STUDENT_LOAN' | 'CREDIT_CARD' | 'GENERIC_LOAN' | 'PAYABLE' | 'COMMITTED_EXPENSE' | 'OTHER';
   currency: 'INR';
-  lender?: string;
-  description?: string;
   isActive: boolean;
+  lastUpdated: string;
+  
+  // Value fields (mandatory for creation)
+  outstandingBalance: number; // Always required
+  emiAmount?: number; // For loans
+  creditLimit?: number; // For credit cards
+  amountPerPeriod?: number; // For committed expenses
+  amount?: number; // For payables and other
+  
+  // Optional fields
+  interestRate?: number;
+  linkedProperty?: string; // For mortgages
+  lenderName?: string;
+  startDate?: string;
+  tenure?: string;
+  loanAccountNumber?: string;
+  vehicleReference?: string;
+  purpose?: string;
+  borrowerName?: string;
+  minimumDue?: number;
+  dueDate?: string;
+  cardIdentifier?: string;
+  loanType?: string;
+  collateral?: string;
+  creditorName?: string;
+  recurrence?: string;
+  status?: string;
+  frequency?: string; // For committed expenses
+  beneficiary?: string;
+  nextPaymentDate?: string;
+  paymentMode?: string;
+  description?: string;
+  secured?: boolean;
 }
 
 export interface LiabilityPayment {
@@ -117,43 +140,89 @@ export interface BalanceSheet {
 export type AssetType = 
   | 'FIXED_DEPOSIT'
   | 'RECURRING_DEPOSIT'
+  | 'BONDS'
+  | 'MUTUAL_FUNDS'
   | 'GOLD'
   | 'SILVER'
   | 'JEWELS'
-  | 'BONDS'
   | 'REAL_ESTATE'
   | 'PROVIDENT_FUND'
   | 'PENSION_FUND'
-  | 'MUTUAL_FUNDS'
   | 'RECEIVABLES'
-  | 'STOCKS';
+  | 'STOCKS'
+  | 'INSURANCE_LINKED'
+  | 'CASH_BANK';
 
 export interface Asset {
   id: string;
   name: string;
   type: AssetType;
-  amount: number;
   currency: 'INR';
-  description?: string;
-  purchaseDate?: string;
-  maturityDate?: string;
-  interestRate?: number;
-  currentValue?: number;
   isActive: boolean;
   lastUpdated: string;
-  // Type-specific fields
-  bankName?: string; // For FDs, RDs
-  accountNumber?: string; // For FDs, RDs
-  weight?: number; // For gold, silver, jewels (in grams)
-  purity?: string; // For gold, silver (e.g., "24K", "999")
-  propertyAddress?: string; // For real estate
-  propertyType?: string; // For real estate (residential, commercial, land)
-  fundName?: string; // For mutual funds, provident fund, pension fund
-  fundHouse?: string; // For mutual funds
-  nav?: number; // For mutual funds
-  units?: number; // For mutual funds
-  dueDate?: string; // For receivables
-  debtorName?: string; // For receivables
+  
+  // Value fields (mandatory for creation)
+  principalAmount?: number; // For FDs, bonds, real estate
+  monthlyDepositAmount?: number; // For RDs
+  faceValue?: number; // For bonds
+  unitsHeld?: number; // For bonds, mutual funds, stocks
+  quantity?: number; // For gold, silver, jewels
+  weight?: number; // For jewels
+  ownershipPercentage?: number; // For real estate
+  amountReceivable?: number; // For receivables
+  currentBalance?: number; // For PF, pension, cash
+  currentValue: number; // Always required - current market value
+  
+  // Optional fields
+  description?: string;
+  startDate?: string;
+  maturityDate?: string;
+  interestRate?: number;
+  bankName?: string;
+  accountNumber?: string;
+  autoRenew?: boolean; // For FDs
+  tenure?: string; // For RDs
+  issuerName?: string; // For bonds
+  bondType?: string;
+  couponRate?: number;
+  purchasePrice?: number;
+  purchaseDate?: string;
+  isin?: string;
+  fundName?: string;
+  fundHouse?: string;
+  fundType?: string;
+  folioNumber?: string;
+  assetForm?: string; // For gold
+  purity?: string;
+  purchaseRate?: number;
+  certificate?: string;
+  hallmark?: string;
+  insuranceDetails?: string;
+  propertyAddress?: string;
+  propertyType?: string;
+  linkedMortgage?: string;
+  rentalIncome?: number;
+  documents?: string;
+  employerName?: string;
+  schemeName?: string;
+  uan?: string;
+  pran?: string;
+  fundManager?: string;
+  tier?: string;
+  dueDate?: string;
+  debtorName?: string;
+  status?: string;
+  symbol?: string;
+  exchange?: string;
+  averagePurchasePrice?: number;
+  dematReference?: string;
+  sector?: string;
+  policyNumber?: string;
+  insurer?: string;
+  policyType?: string;
+  annualPremium?: number;
+  accountType?: string;
+  lastSyncDate?: string;
 }
 
 export interface Portfolio {

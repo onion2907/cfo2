@@ -14,16 +14,18 @@ interface AssetsTableProps {
 const ASSET_TYPE_LABELS: Record<AssetType, { label: string; icon: string; color: string }> = {
   FIXED_DEPOSIT: { label: 'Fixed Deposit', icon: '🏦', color: 'bg-blue-100 text-blue-800' },
   RECURRING_DEPOSIT: { label: 'Recurring Deposit', icon: '💳', color: 'bg-blue-100 text-blue-800' },
+  BONDS: { label: 'Bonds', icon: '📄', color: 'bg-green-100 text-green-800' },
+  MUTUAL_FUNDS: { label: 'Mutual Funds', icon: '📈', color: 'bg-emerald-100 text-emerald-800' },
   GOLD: { label: 'Gold', icon: '🥇', color: 'bg-yellow-100 text-yellow-800' },
   SILVER: { label: 'Silver', icon: '🥈', color: 'bg-gray-100 text-gray-800' },
   JEWELS: { label: 'Jewels', icon: '💎', color: 'bg-purple-100 text-purple-800' },
-  BONDS: { label: 'Bonds', icon: '📄', color: 'bg-green-100 text-green-800' },
   REAL_ESTATE: { label: 'Real Estate', icon: '🏠', color: 'bg-orange-100 text-orange-800' },
   PROVIDENT_FUND: { label: 'Provident Fund', icon: '🏛️', color: 'bg-indigo-100 text-indigo-800' },
   PENSION_FUND: { label: 'Pension Fund', icon: '👴', color: 'bg-indigo-100 text-indigo-800' },
-  MUTUAL_FUNDS: { label: 'Mutual Funds', icon: '📈', color: 'bg-emerald-100 text-emerald-800' },
   RECEIVABLES: { label: 'Receivables', icon: '💰', color: 'bg-pink-100 text-pink-800' },
-  STOCKS: { label: 'Stocks', icon: '📊', color: 'bg-cyan-100 text-cyan-800' }
+  STOCKS: { label: 'Stocks', icon: '📊', color: 'bg-cyan-100 text-cyan-800' },
+  INSURANCE_LINKED: { label: 'Insurance-Linked Assets', icon: '🛡️', color: 'bg-teal-100 text-teal-800' },
+  CASH_BANK: { label: 'Cash & Bank Balances', icon: '💵', color: 'bg-lime-100 text-lime-800' }
 };
 
 const AssetsTable: React.FC<AssetsTableProps> = ({
@@ -63,19 +65,26 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
   };
 
   const getCurrentValue = (asset: Asset) => {
-    return asset.currentValue || asset.amount;
+    return asset.currentValue;
+  };
+
+  const getCostValue = (asset: Asset) => {
+    // Use appropriate cost field based on asset type
+    return asset.principalAmount || asset.monthlyDepositAmount || asset.faceValue || asset.purchasePrice || asset.currentValue || 0;
   };
 
   const getProfitLoss = (asset: Asset) => {
-    if (asset.currentValue && asset.currentValue !== asset.amount) {
-      return asset.currentValue - asset.amount;
+    const costValue = getCostValue(asset);
+    if (asset.currentValue && asset.currentValue !== costValue) {
+      return asset.currentValue - costValue;
     }
     return 0;
   };
 
   const getProfitLossPercent = (asset: Asset) => {
     const profitLoss = getProfitLoss(asset);
-    return asset.amount > 0 ? (profitLoss / asset.amount) * 100 : 0;
+    const costValue = getCostValue(asset);
+    return costValue > 0 ? (profitLoss / costValue) * 100 : 0;
   };
 
   // Group assets by type
@@ -105,7 +114,7 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
   });
 
   const totalAssets = assets.length;
-  const totalAmount = assets.reduce((sum, asset) => sum + asset.amount, 0);
+  const totalAmount = assets.reduce((sum, asset) => sum + getCostValue(asset), 0);
   const totalCurrentValue = assets.reduce((sum, asset) => sum + getCurrentValue(asset), 0);
   const totalProfitLoss = totalCurrentValue - totalAmount;
   const totalProfitLossPercent = totalAmount > 0 ? (totalProfitLoss / totalAmount) * 100 : 0;
@@ -221,7 +230,7 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {formatAmount(asset.amount)}
+                            {formatAmount(getCostValue(asset))}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

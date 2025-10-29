@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Liability } from '../types/portfolio';
-import { getLiabilityTypeDisplayName } from '../utils/liabilityCalculations';
 
 interface LiabilityModalProps {
   isOpen: boolean;
@@ -10,18 +9,17 @@ interface LiabilityModalProps {
   editingLiability: Liability | null;
 }
 
-const LIABILITY_TYPES: Liability['type'][] = [
-  'LOAN',
-  'CREDIT_CARD',
-  'PAYABLE',
-  'COMMITTED_EXPENSE',
-  'MORTGAGE',
-  'PERSONAL_LOAN',
-  'STUDENT_LOAN',
-  'CAR_LOAN',
-  'OTHER'
+const LIABILITY_TYPES: { value: Liability['type']; label: string; icon: string }[] = [
+  { value: 'MORTGAGE', label: 'Mortgage / Home Loan', icon: '🏠' },
+  { value: 'CAR_LOAN', label: 'Car Loan', icon: '🚗' },
+  { value: 'PERSONAL_LOAN', label: 'Personal Loan', icon: '👤' },
+  { value: 'STUDENT_LOAN', label: 'Student Loan', icon: '🎓' },
+  { value: 'CREDIT_CARD', label: 'Credit Card', icon: '💳' },
+  { value: 'GENERIC_LOAN', label: 'Generic Loan', icon: '📋' },
+  { value: 'PAYABLE', label: 'Payables', icon: '📝' },
+  { value: 'COMMITTED_EXPENSE', label: 'Committed Expenses', icon: '📅' },
+  { value: 'OTHER', label: 'Other Liabilities', icon: '📦' }
 ];
-
 
 const LiabilityModal: React.FC<LiabilityModalProps> = ({
   isOpen,
@@ -31,427 +29,995 @@ const LiabilityModal: React.FC<LiabilityModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: '',
-    type: 'LOAN' as Liability['type'],
-    category: 'UNSECURED' as Liability['category'],
-    term: 'LONG_TERM' as Liability['term'],
-    originalAmount: '',
-    currentBalance: '',
-    interestRate: '',
-    monthlyPayment: '',
-    startDate: '',
-    endDate: '',
-    currency: 'INR' as const,
-    lender: '',
+    type: 'MORTGAGE' as Liability['type'],
     description: '',
-    isActive: true
+    isActive: true,
+    
+    // Value fields
+    outstandingBalance: '',
+    emiAmount: '',
+    creditLimit: '',
+    amountPerPeriod: '',
+    amount: '',
+    
+    // Optional fields
+    interestRate: '',
+    linkedProperty: '',
+    lenderName: '',
+    startDate: '',
+    tenure: '',
+    loanAccountNumber: '',
+    vehicleReference: '',
+    purpose: '',
+    borrowerName: '',
+    minimumDue: '',
+    dueDate: '',
+    cardIdentifier: '',
+    loanType: '',
+    collateral: '',
+    creditorName: '',
+    recurrence: '',
+    status: '',
+    frequency: '',
+    beneficiary: '',
+    nextPaymentDate: '',
+    paymentMode: '',
+    secured: false
   });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (editingLiability) {
       setFormData({
         name: editingLiability.name,
         type: editingLiability.type,
-        category: editingLiability.category,
-        term: editingLiability.term,
-        originalAmount: editingLiability.originalAmount.toString(),
-        currentBalance: editingLiability.currentBalance.toString(),
-        interestRate: editingLiability.interestRate.toString(),
-        monthlyPayment: editingLiability.monthlyPayment.toString(),
-        startDate: editingLiability.startDate,
-        endDate: editingLiability.endDate || '',
-        currency: editingLiability.currency,
-        lender: editingLiability.lender || '',
         description: editingLiability.description || '',
-        isActive: editingLiability.isActive
+        isActive: editingLiability.isActive,
+        outstandingBalance: editingLiability.outstandingBalance?.toString() || '',
+        emiAmount: editingLiability.emiAmount?.toString() || '',
+        creditLimit: editingLiability.creditLimit?.toString() || '',
+        amountPerPeriod: editingLiability.amountPerPeriod?.toString() || '',
+        amount: editingLiability.amount?.toString() || '',
+        interestRate: editingLiability.interestRate?.toString() || '',
+        linkedProperty: editingLiability.linkedProperty || '',
+        lenderName: editingLiability.lenderName || '',
+        startDate: editingLiability.startDate || '',
+        tenure: editingLiability.tenure || '',
+        loanAccountNumber: editingLiability.loanAccountNumber || '',
+        vehicleReference: editingLiability.vehicleReference || '',
+        purpose: editingLiability.purpose || '',
+        borrowerName: editingLiability.borrowerName || '',
+        minimumDue: editingLiability.minimumDue?.toString() || '',
+        dueDate: editingLiability.dueDate || '',
+        cardIdentifier: editingLiability.cardIdentifier || '',
+        loanType: editingLiability.loanType || '',
+        collateral: editingLiability.collateral || '',
+        creditorName: editingLiability.creditorName || '',
+        recurrence: editingLiability.recurrence || '',
+        status: editingLiability.status || '',
+        frequency: editingLiability.frequency || '',
+        beneficiary: editingLiability.beneficiary || '',
+        nextPaymentDate: editingLiability.nextPaymentDate || '',
+        paymentMode: editingLiability.paymentMode || '',
+        secured: editingLiability.secured || false
       });
     } else {
       setFormData({
         name: '',
-        type: 'LOAN',
-        category: 'UNSECURED',
-        term: 'LONG_TERM',
-        originalAmount: '',
-        currentBalance: '',
-        interestRate: '',
-        monthlyPayment: '',
-        startDate: '',
-        endDate: '',
-        currency: 'INR' as const,
-        lender: '',
+        type: 'MORTGAGE',
         description: '',
-        isActive: true
+        isActive: true,
+        outstandingBalance: '',
+        emiAmount: '',
+        creditLimit: '',
+        amountPerPeriod: '',
+        amount: '',
+        interestRate: '',
+        linkedProperty: '',
+        lenderName: '',
+        startDate: '',
+        tenure: '',
+        loanAccountNumber: '',
+        vehicleReference: '',
+        purpose: '',
+        borrowerName: '',
+        minimumDue: '',
+        dueDate: '',
+        cardIdentifier: '',
+        loanType: '',
+        collateral: '',
+        creditorName: '',
+        recurrence: '',
+        status: '',
+        frequency: '',
+        beneficiary: '',
+        nextPaymentDate: '',
+        paymentMode: '',
+        secured: false
       });
     }
-    setErrors({});
   }, [editingLiability, isOpen]);
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Liability name is required';
-    }
-
-    if (!formData.originalAmount || parseFloat(formData.originalAmount) <= 0) {
-      newErrors.originalAmount = 'Original amount must be greater than 0';
-    }
-
-    if (!formData.currentBalance || parseFloat(formData.currentBalance) < 0) {
-      newErrors.currentBalance = 'Current balance cannot be negative';
-    }
-
-    if (parseFloat(formData.currentBalance) > parseFloat(formData.originalAmount)) {
-      newErrors.currentBalance = 'Current balance cannot exceed original amount';
-    }
-
-    if (!formData.interestRate || parseFloat(formData.interestRate) < 0) {
-      newErrors.interestRate = 'Interest rate cannot be negative';
-    }
-
-    if (!formData.monthlyPayment || parseFloat(formData.monthlyPayment) < 0) {
-      newErrors.monthlyPayment = 'Monthly payment cannot be negative';
-    }
-
-    if (!formData.startDate) {
-      newErrors.startDate = 'Start date is required';
-    }
-
-    if (formData.endDate && new Date(formData.endDate) <= new Date(formData.startDate)) {
-      newErrors.endDate = 'End date must be after start date';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!formData.name.trim() || !formData.outstandingBalance) {
       return;
     }
 
-    const liability: Omit<Liability, 'id'> = {
+    const outstandingBalance = parseFloat(formData.outstandingBalance);
+    if (isNaN(outstandingBalance) || outstandingBalance < 0) {
+      return;
+    }
+
+    const liabilityData: Omit<Liability, 'id'> = {
       name: formData.name.trim(),
       type: formData.type,
-      category: formData.category,
-      term: formData.term,
-      originalAmount: parseFloat(formData.originalAmount),
-      currentBalance: parseFloat(formData.currentBalance),
-      interestRate: parseFloat(formData.interestRate),
-      monthlyPayment: parseFloat(formData.monthlyPayment),
-      startDate: formData.startDate,
-      endDate: formData.endDate || undefined,
-      currency: formData.currency,
-      lender: formData.lender.trim() || undefined,
+      currency: 'INR',
       description: formData.description.trim() || undefined,
-      isActive: formData.isActive
+      isActive: formData.isActive,
+      lastUpdated: new Date().toISOString(),
+      outstandingBalance: outstandingBalance,
+      
+      // Value fields
+      emiAmount: formData.emiAmount ? parseFloat(formData.emiAmount) : undefined,
+      creditLimit: formData.creditLimit ? parseFloat(formData.creditLimit) : undefined,
+      amountPerPeriod: formData.amountPerPeriod ? parseFloat(formData.amountPerPeriod) : undefined,
+      amount: formData.amount ? parseFloat(formData.amount) : undefined,
+      
+      // Optional fields
+      interestRate: formData.interestRate ? parseFloat(formData.interestRate) : undefined,
+      linkedProperty: formData.linkedProperty.trim() || undefined,
+      lenderName: formData.lenderName.trim() || undefined,
+      startDate: formData.startDate || undefined,
+      tenure: formData.tenure.trim() || undefined,
+      loanAccountNumber: formData.loanAccountNumber.trim() || undefined,
+      vehicleReference: formData.vehicleReference.trim() || undefined,
+      purpose: formData.purpose.trim() || undefined,
+      borrowerName: formData.borrowerName.trim() || undefined,
+      minimumDue: formData.minimumDue ? parseFloat(formData.minimumDue) : undefined,
+      dueDate: formData.dueDate || undefined,
+      cardIdentifier: formData.cardIdentifier.trim() || undefined,
+      loanType: formData.loanType.trim() || undefined,
+      collateral: formData.collateral.trim() || undefined,
+      creditorName: formData.creditorName.trim() || undefined,
+      recurrence: formData.recurrence.trim() || undefined,
+      status: formData.status.trim() || undefined,
+      frequency: formData.frequency.trim() || undefined,
+      beneficiary: formData.beneficiary.trim() || undefined,
+      nextPaymentDate: formData.nextPaymentDate || undefined,
+      paymentMode: formData.paymentMode.trim() || undefined,
+      secured: formData.secured
     };
 
-    onSaveLiability(liability);
+    onSaveLiability(liabilityData);
     onClose();
   };
 
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  const getFieldsForLiabilityType = (type: Liability['type']) => {
+    switch (type) {
+      case 'MORTGAGE':
+        return (
+          <>
+            <div>
+              <label htmlFor="emiAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                EMI Amount (₹) *
+              </label>
+              <input
+                type="number"
+                id="emiAmount"
+                value={formData.emiAmount}
+                onChange={(e) => setFormData(prev => ({ ...prev, emiAmount: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter EMI amount"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="interestRate" className="block text-sm font-medium text-gray-700 mb-1">
+                Interest Rate (%)
+              </label>
+              <input
+                type="number"
+                id="interestRate"
+                value={formData.interestRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter interest rate"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="linkedProperty" className="block text-sm font-medium text-gray-700 mb-1">
+                Linked Property Reference
+              </label>
+              <input
+                type="text"
+                id="linkedProperty"
+                value={formData.linkedProperty}
+                onChange={(e) => setFormData(prev => ({ ...prev, linkedProperty: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter property reference"
+              />
+            </div>
+            <div>
+              <label htmlFor="lenderName" className="block text-sm font-medium text-gray-700 mb-1">
+                Lender Name
+              </label>
+              <input
+                type="text"
+                id="lenderName"
+                value={formData.lenderName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lenderName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter lender name"
+              />
+            </div>
+            <div>
+              <label htmlFor="tenure" className="block text-sm font-medium text-gray-700 mb-1">
+                Tenure
+              </label>
+              <input
+                type="text"
+                id="tenure"
+                value={formData.tenure}
+                onChange={(e) => setFormData(prev => ({ ...prev, tenure: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., 20 years, 240 months"
+              />
+            </div>
+            <div>
+              <label htmlFor="loanAccountNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                Loan Account Number
+              </label>
+              <input
+                type="text"
+                id="loanAccountNumber"
+                value={formData.loanAccountNumber}
+                onChange={(e) => setFormData(prev => ({ ...prev, loanAccountNumber: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter loan account number"
+              />
+            </div>
+          </>
+        );
+      
+      case 'CAR_LOAN':
+        return (
+          <>
+            <div>
+              <label htmlFor="emiAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                EMI Amount (₹) *
+              </label>
+              <input
+                type="number"
+                id="emiAmount"
+                value={formData.emiAmount}
+                onChange={(e) => setFormData(prev => ({ ...prev, emiAmount: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter EMI amount"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="interestRate" className="block text-sm font-medium text-gray-700 mb-1">
+                Interest Rate (%)
+              </label>
+              <input
+                type="number"
+                id="interestRate"
+                value={formData.interestRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter interest rate"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="vehicleReference" className="block text-sm font-medium text-gray-700 mb-1">
+                Vehicle Reference
+              </label>
+              <input
+                type="text"
+                id="vehicleReference"
+                value={formData.vehicleReference}
+                onChange={(e) => setFormData(prev => ({ ...prev, vehicleReference: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter vehicle details"
+              />
+            </div>
+            <div>
+              <label htmlFor="lenderName" className="block text-sm font-medium text-gray-700 mb-1">
+                Lender
+              </label>
+              <input
+                type="text"
+                id="lenderName"
+                value={formData.lenderName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lenderName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter lender name"
+              />
+            </div>
+            <div>
+              <label htmlFor="tenure" className="block text-sm font-medium text-gray-700 mb-1">
+                Tenure
+              </label>
+              <input
+                type="text"
+                id="tenure"
+                value={formData.tenure}
+                onChange={(e) => setFormData(prev => ({ ...prev, tenure: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., 5 years, 60 months"
+              />
+            </div>
+          </>
+        );
+      
+      case 'PERSONAL_LOAN':
+        return (
+          <>
+            <div>
+              <label htmlFor="emiAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                EMI Amount (₹) *
+              </label>
+              <input
+                type="number"
+                id="emiAmount"
+                value={formData.emiAmount}
+                onChange={(e) => setFormData(prev => ({ ...prev, emiAmount: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter EMI amount"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="interestRate" className="block text-sm font-medium text-gray-700 mb-1">
+                Interest Rate (%)
+              </label>
+              <input
+                type="number"
+                id="interestRate"
+                value={formData.interestRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter interest rate"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="lenderName" className="block text-sm font-medium text-gray-700 mb-1">
+                Lender
+              </label>
+              <input
+                type="text"
+                id="lenderName"
+                value={formData.lenderName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lenderName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter lender name"
+              />
+            </div>
+            <div>
+              <label htmlFor="tenure" className="block text-sm font-medium text-gray-700 mb-1">
+                Tenure
+              </label>
+              <input
+                type="text"
+                id="tenure"
+                value={formData.tenure}
+                onChange={(e) => setFormData(prev => ({ ...prev, tenure: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., 3 years, 36 months"
+              />
+            </div>
+            <div>
+              <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-1">
+                Purpose
+              </label>
+              <input
+                type="text"
+                id="purpose"
+                value={formData.purpose}
+                onChange={(e) => setFormData(prev => ({ ...prev, purpose: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter loan purpose"
+              />
+            </div>
+          </>
+        );
+      
+      case 'STUDENT_LOAN':
+        return (
+          <>
+            <div>
+              <label htmlFor="emiAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                EMI / Deferment Status
+              </label>
+              <input
+                type="text"
+                id="emiAmount"
+                value={formData.emiAmount}
+                onChange={(e) => setFormData(prev => ({ ...prev, emiAmount: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter EMI amount or deferment status"
+              />
+            </div>
+            <div>
+              <label htmlFor="lenderName" className="block text-sm font-medium text-gray-700 mb-1">
+                Lender
+              </label>
+              <input
+                type="text"
+                id="lenderName"
+                value={formData.lenderName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lenderName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter lender name"
+              />
+            </div>
+            <div>
+              <label htmlFor="borrowerName" className="block text-sm font-medium text-gray-700 mb-1">
+                Borrower Name
+              </label>
+              <input
+                type="text"
+                id="borrowerName"
+                value={formData.borrowerName}
+                onChange={(e) => setFormData(prev => ({ ...prev, borrowerName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter borrower name"
+              />
+            </div>
+            <div>
+              <label htmlFor="tenure" className="block text-sm font-medium text-gray-700 mb-1">
+                Tenure
+              </label>
+              <input
+                type="text"
+                id="tenure"
+                value={formData.tenure}
+                onChange={(e) => setFormData(prev => ({ ...prev, tenure: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., 10 years, 120 months"
+              />
+            </div>
+          </>
+        );
+      
+      case 'CREDIT_CARD':
+        return (
+          <>
+            <div>
+              <label htmlFor="creditLimit" className="block text-sm font-medium text-gray-700 mb-1">
+                Credit Limit (₹) *
+              </label>
+              <input
+                type="number"
+                id="creditLimit"
+                value={formData.creditLimit}
+                onChange={(e) => setFormData(prev => ({ ...prev, creditLimit: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter credit limit"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="minimumDue" className="block text-sm font-medium text-gray-700 mb-1">
+                Minimum Due (₹)
+              </label>
+              <input
+                type="number"
+                id="minimumDue"
+                value={formData.minimumDue}
+                onChange={(e) => setFormData(prev => ({ ...prev, minimumDue: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter minimum due"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date
+              </label>
+              <input
+                type="date"
+                id="dueDate"
+                value={formData.dueDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="lenderName" className="block text-sm font-medium text-gray-700 mb-1">
+                Issuer Bank
+              </label>
+              <input
+                type="text"
+                id="lenderName"
+                value={formData.lenderName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lenderName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter issuer bank"
+              />
+            </div>
+            <div>
+              <label htmlFor="cardIdentifier" className="block text-sm font-medium text-gray-700 mb-1">
+                Card Identifier
+              </label>
+              <input
+                type="text"
+                id="cardIdentifier"
+                value={formData.cardIdentifier}
+                onChange={(e) => setFormData(prev => ({ ...prev, cardIdentifier: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter card number (last 4 digits)"
+              />
+            </div>
+          </>
+        );
+      
+      case 'GENERIC_LOAN':
+        return (
+          <>
+            <div>
+              <label htmlFor="emiAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                EMI / Payment Frequency (₹) *
+              </label>
+              <input
+                type="number"
+                id="emiAmount"
+                value={formData.emiAmount}
+                onChange={(e) => setFormData(prev => ({ ...prev, emiAmount: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter EMI amount"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="interestRate" className="block text-sm font-medium text-gray-700 mb-1">
+                Interest Rate (%)
+              </label>
+              <input
+                type="number"
+                id="interestRate"
+                value={formData.interestRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter interest rate"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="lenderName" className="block text-sm font-medium text-gray-700 mb-1">
+                Lender
+              </label>
+              <input
+                type="text"
+                id="lenderName"
+                value={formData.lenderName}
+                onChange={(e) => setFormData(prev => ({ ...prev, lenderName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter lender name"
+              />
+            </div>
+            <div>
+              <label htmlFor="loanType" className="block text-sm font-medium text-gray-700 mb-1">
+                Loan Type
+              </label>
+              <select
+                id="loanType"
+                value={formData.loanType}
+                onChange={(e) => setFormData(prev => ({ ...prev, loanType: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Select loan type</option>
+                <option value="LAP">Loan Against Property</option>
+                <option value="GOLD_LOAN">Gold Loan</option>
+                <option value="MARGIN_LOAN">Margin Loan</option>
+                <option value="BUSINESS_LOAN">Business Loan</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="tenure" className="block text-sm font-medium text-gray-700 mb-1">
+                Tenure
+              </label>
+              <input
+                type="text"
+                id="tenure"
+                value={formData.tenure}
+                onChange={(e) => setFormData(prev => ({ ...prev, tenure: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="e.g., 5 years, 60 months"
+              />
+            </div>
+            <div>
+              <label htmlFor="collateral" className="block text-sm font-medium text-gray-700 mb-1">
+                Collateral
+              </label>
+              <input
+                type="text"
+                id="collateral"
+                value={formData.collateral}
+                onChange={(e) => setFormData(prev => ({ ...prev, collateral: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter collateral details"
+              />
+            </div>
+          </>
+        );
+      
+      case 'PAYABLE':
+        return (
+          <>
+            <div>
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+                Amount Payable (₹) *
+              </label>
+              <input
+                type="number"
+                id="amount"
+                value={formData.amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter amount payable"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date
+              </label>
+              <input
+                type="date"
+                id="dueDate"
+                value={formData.dueDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="creditorName" className="block text-sm font-medium text-gray-700 mb-1">
+                Creditor Name
+              </label>
+              <input
+                type="text"
+                id="creditorName"
+                value={formData.creditorName}
+                onChange={(e) => setFormData(prev => ({ ...prev, creditorName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter creditor name"
+              />
+            </div>
+            <div>
+              <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-1">
+                Purpose
+              </label>
+              <input
+                type="text"
+                id="purpose"
+                value={formData.purpose}
+                onChange={(e) => setFormData(prev => ({ ...prev, purpose: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter purpose"
+              />
+            </div>
+            <div>
+              <label htmlFor="recurrence" className="block text-sm font-medium text-gray-700 mb-1">
+                Recurrence
+              </label>
+              <select
+                id="recurrence"
+                value={formData.recurrence}
+                onChange={(e) => setFormData(prev => ({ ...prev, recurrence: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Select recurrence</option>
+                <option value="ONE_TIME">One-time</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="YEARLY">Yearly</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                id="status"
+                value={formData.status}
+                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Select status</option>
+                <option value="PENDING">Pending</option>
+                <option value="OVERDUE">Overdue</option>
+                <option value="PARTIAL">Partial</option>
+                <option value="SETTLED">Settled</option>
+              </select>
+            </div>
+          </>
+        );
+      
+      case 'COMMITTED_EXPENSE':
+        return (
+          <>
+            <div>
+              <label htmlFor="amountPerPeriod" className="block text-sm font-medium text-gray-700 mb-1">
+                Amount per Period (₹) *
+              </label>
+              <input
+                type="number"
+                id="amountPerPeriod"
+                value={formData.amountPerPeriod}
+                onChange={(e) => setFormData(prev => ({ ...prev, amountPerPeriod: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter amount per period"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-1">
+                Frequency *
+              </label>
+              <select
+                id="frequency"
+                value={formData.frequency}
+                onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Select frequency</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="YEARLY">Yearly</option>
+                <option value="WEEKLY">Weekly</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="beneficiary" className="block text-sm font-medium text-gray-700 mb-1">
+                Beneficiary
+              </label>
+              <input
+                type="text"
+                id="beneficiary"
+                value={formData.beneficiary}
+                onChange={(e) => setFormData(prev => ({ ...prev, beneficiary: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter beneficiary"
+              />
+            </div>
+            <div>
+              <label htmlFor="nextPaymentDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Next Payment / Renewal Date
+              </label>
+              <input
+                type="date"
+                id="nextPaymentDate"
+                value={formData.nextPaymentDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, nextPaymentDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="paymentMode" className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Mode
+              </label>
+              <select
+                id="paymentMode"
+                value={formData.paymentMode}
+                onChange={(e) => setFormData(prev => ({ ...prev, paymentMode: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Select payment mode</option>
+                <option value="AUTO_DEBIT">Auto Debit</option>
+                <option value="MANUAL">Manual</option>
+                <option value="UPI">UPI</option>
+                <option value="CARD">Card</option>
+                <option value="CASH">Cash</option>
+              </select>
+            </div>
+          </>
+        );
+      
+      case 'OTHER':
+        return (
+          <>
+            <div>
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+                Amount (₹) *
+              </label>
+              <input
+                type="number"
+                id="amount"
+                value={formData.amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter amount"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date
+              </label>
+              <input
+                type="date"
+                id="dueDate"
+                value={formData.dueDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="secured"
+                checked={formData.secured}
+                onChange={(e) => setFormData(prev => ({ ...prev, secured: e.target.checked }))}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <label htmlFor="secured" className="ml-2 block text-sm text-gray-700">
+                Secured
+              </label>
+            </div>
+          </>
+        );
+      
+      default:
+        return null;
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {editingLiability ? 'Edit Liability' : 'Add New Liability'}
-          </h2>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {editingLiability ? 'Edit Liability' : 'Add Liability'}
+          </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </button>
         </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Liability Type Selection */}
+          <div>
+            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+              Liability Type *
+            </label>
+            <select
+              id="type"
+              value={formData.type}
+              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Liability['type'] }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              required
+            >
+              {LIABILITY_TYPES.map((liabilityType) => (
+                <option key={liabilityType.value} value={liabilityType.value}>
+                  {liabilityType.icon} {liabilityType.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Basic Information */}
+          {/* Basic Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                 Liability Name *
               </label>
               <input
                 type="text"
+                id="name"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="e.g., Home Mortgage, Credit Card"
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter liability name"
+                required
               />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.name}
-                </p>
-              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type *
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => handleInputChange('type', e.target.value as Liability['type'])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                {LIABILITY_TYPES.map(type => (
-                  <option key={type} value={type}>
-                    {getLiabilityTypeDisplayName(type)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Category and Term */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category *
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => handleInputChange('category', e.target.value as Liability['category'])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="SECURED">Secured</option>
-                <option value="UNSECURED">Unsecured</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Term *
-              </label>
-              <select
-                value={formData.term}
-                onChange={(e) => handleInputChange('term', e.target.value as Liability['term'])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="SHORT_TERM">Short Term (&lt; 1 year)</option>
-                <option value="LONG_TERM">Long Term (≥ 1 year)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Financial Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Original Amount *
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.originalAmount}
-                  onChange={(e) => handleInputChange('originalAmount', e.target.value)}
-                  className={`w-full px-3 py-2 pr-16 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                    errors.originalAmount ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="0.00"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <span className="text-sm text-gray-500">₹</span>
-                </div>
-              </div>
-              {errors.originalAmount && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.originalAmount}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Current Balance *
+              <label htmlFor="outstandingBalance" className="block text-sm font-medium text-gray-700 mb-1">
+                Outstanding Balance (₹) *
               </label>
               <input
                 type="number"
-                step="0.01"
-                min="0"
-                value={formData.currentBalance}
-                onChange={(e) => handleInputChange('currentBalance', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.currentBalance ? 'border-red-500' : 'border-gray-300'
-                }`}
+                id="outstandingBalance"
+                value={formData.outstandingBalance}
+                onChange={(e) => setFormData(prev => ({ ...prev, outstandingBalance: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0.00"
+                min="0"
+                step="0.01"
+                required
               />
-              {errors.currentBalance && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.currentBalance}
-                </p>
-              )}
             </div>
           </div>
 
+          {/* Type-specific Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Interest Rate (% per year)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.interestRate}
-                onChange={(e) => handleInputChange('interestRate', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.interestRate ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="0.00"
-              />
-              {errors.interestRate && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.interestRate}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Payment
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.monthlyPayment}
-                onChange={(e) => handleInputChange('monthlyPayment', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.monthlyPayment ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="0.00"
-              />
-              {errors.monthlyPayment && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.monthlyPayment}
-                </p>
-              )}
-            </div>
+            {getFieldsForLiabilityType(formData.type)}
           </div>
 
-          {/* Dates */}
+          {/* Common Optional Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Start Date *
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date
               </label>
               <input
                 type="date"
+                id="startDate"
                 value={formData.startDate}
-                onChange={(e) => handleInputChange('startDate', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.startDate ? 'border-red-500' : 'border-gray-300'
-                }`}
+                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
-              {errors.startDate && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.startDate}
-                </p>
-              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                End Date (Optional)
+              <label htmlFor="interestRate" className="block text-sm font-medium text-gray-700 mb-1">
+                Interest Rate (%)
               </label>
               <input
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => handleInputChange('endDate', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-                  errors.endDate ? 'border-red-500' : 'border-gray-300'
-                }`}
+                type="number"
+                id="interestRate"
+                value={formData.interestRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Enter interest rate"
+                step="0.01"
               />
-              {errors.endDate && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.endDate}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Additional Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lender/Institution
-              </label>
-              <input
-                type="text"
-                value={formData.lender}
-                onChange={(e) => handleInputChange('lender', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                placeholder="e.g., Bank of America, Chase"
-              />
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) => handleInputChange('isActive', e.target.checked)}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">Active Liability</span>
-              </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Description
             </label>
             <textarea
+              id="description"
               value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Optional description"
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Additional notes about this liability..."
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+            />
+            <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+              Active
+            </label>
+          </div>
+
+          <div className="flex items-center justify-end space-x-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-primary flex items-center space-x-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
             >
-              <Save className="h-4 w-4" />
-              <span>{editingLiability ? 'Update Liability' : 'Add Liability'}</span>
+              {editingLiability ? 'Update Liability' : 'Add Liability'}
             </button>
           </div>
         </form>
