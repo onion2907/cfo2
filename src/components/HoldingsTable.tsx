@@ -30,11 +30,6 @@ const HoldingsTable: React.FC<HoldingsTableProps> = ({
     return 'text-gray-600';
   };
 
-  const getChangeBgColor = (value: number) => {
-    if (value > 0) return 'bg-green-50';
-    if (value < 0) return 'bg-red-50';
-    return 'bg-gray-50';
-  };
 
   if (holdings.length === 0) {
     return (

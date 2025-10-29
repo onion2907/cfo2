@@ -9,7 +9,7 @@ export interface UseStockSearchReturn {
   isLoading: boolean;
   error: string | null;
   setSearchQuery: (query: string) => void;
-  selectStock: (stock: StockSearchResult) => void;
+  selectStock: (stock: StockSearchResult | null | undefined) => void;
   clearSearch: () => void;
   fetchQuote: (symbol: string) => Promise<void>;
 }
@@ -61,9 +61,14 @@ export const useStockSearch = (apiKey?: string): UseStockSearchReturn => {
   }, [performSearch]);
 
   // Select a stock from search results
-  const selectStock = useCallback((stock: StockSearchResult) => {
-    setSelectedStock(stock);
-    setSearchQuery(`${stock.symbol} - ${stock.name}`);
+  const selectStock = useCallback((stock: StockSearchResult | null | undefined) => {
+    if (stock) {
+      setSelectedStock(stock);
+      setSearchQuery(`${stock.symbol} - ${stock.name}`);
+    } else {
+      setSelectedStock(null);
+      setSearchQuery('');
+    }
     setSearchResults([]);
     setError(null);
   }, []);
