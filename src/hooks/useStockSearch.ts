@@ -22,7 +22,7 @@ export const useStockSearch = (): UseStockSearchReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<number | null>(null);
 
   // Debounced search function
   const performSearch = useCallback(async (query: string) => {
@@ -55,7 +55,7 @@ export const useStockSearch = (): UseStockSearchReturn => {
     }
 
     // Set new timeout for debounced search
-    searchTimeoutRef.current = setTimeout(() => {
+    searchTimeoutRef.current = window.setTimeout(() => {
       performSearch(query);
     }, 500); // 500ms delay
   }, [performSearch]);
@@ -98,7 +98,7 @@ export const useStockSearch = (): UseStockSearchReturn => {
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+        window.clearTimeout(searchTimeoutRef.current);
       }
     };
   }, []);
