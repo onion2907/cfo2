@@ -98,7 +98,7 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
 
   // Calculate totals for each type
   const typeTotals = Object.entries(groupedAssets).map(([type, assets]) => {
-    const totalAmount = assets.reduce((sum, asset) => sum + asset.amount, 0);
+    const totalAmount = assets.reduce((sum, asset) => sum + getCostValue(asset), 0);
     const totalCurrentValue = assets.reduce((sum, asset) => sum + getCurrentValue(asset), 0);
     const totalProfitLoss = totalCurrentValue - totalAmount;
     const totalProfitLossPercent = totalAmount > 0 ? (totalProfitLoss / totalAmount) * 100 : 0;

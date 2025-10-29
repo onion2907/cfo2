@@ -32,7 +32,7 @@ const ComprehensiveTransactionsView: React.FC<ComprehensiveTransactionsViewProps
   const totalTransactions = transactions.length;
   const totalLiabilities = liabilities.length;
   const totalStockValue = transactions.reduce((sum, t) => sum + (t.price * t.quantity), 0);
-  const totalLiabilityValue = liabilities.reduce((sum, l) => sum + l.currentBalance, 0);
+  const totalLiabilityValue = liabilities.reduce((sum, l) => sum + l.outstandingBalance, 0);
 
   // Group transactions by type
   const buyTransactions = transactions.filter(t => t.type === 'BUY');
@@ -214,21 +214,21 @@ const ComprehensiveTransactionsView: React.FC<ComprehensiveTransactionsViewProps
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        liability.category === 'SECURED' 
+                        liability.secured === true 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {liability.category}
+                        {liability.secured ? 'SECURED' : 'UNSECURED'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatAmount(liability.currentBalance)}
+                      {formatAmount(liability.outstandingBalance)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatAmount(liability.monthlyPayment)}
+                      {formatAmount(liability.emiAmount || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {liability.interestRate.toFixed(2)}%
+                      {(liability.interestRate || 0).toFixed(2)}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">

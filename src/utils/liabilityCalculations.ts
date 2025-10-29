@@ -1,26 +1,26 @@
 import { Liability, LiabilityPayment, LiabilityMetrics, BalanceSheet, Holding, PortfolioMetrics, Asset } from '../types/portfolio';
 
 export const calculateLiabilityMetrics = (liabilities: Liability[]): LiabilityMetrics => {
-  const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.currentBalance, 0);
-  const totalMonthlyPayments = liabilities.reduce((sum, liability) => sum + liability.monthlyPayment, 0);
+  const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.outstandingBalance, 0);
+  const totalMonthlyPayments = liabilities.reduce((sum, liability) => sum + (liability.emiAmount || 0), 0);
   
   const securedDebt = liabilities
-    .filter(liability => liability.category === 'SECURED')
-    .reduce((sum, liability) => sum + liability.currentBalance, 0);
+    .filter(liability => liability.secured === true)
+    .reduce((sum, liability) => sum + liability.outstandingBalance, 0);
   
   const unsecuredDebt = liabilities
-    .filter(liability => liability.category === 'UNSECURED')
-    .reduce((sum, liability) => sum + liability.currentBalance, 0);
+    .filter(liability => liability.secured === false)
+    .reduce((sum, liability) => sum + liability.outstandingBalance, 0);
   
   const shortTermDebt = liabilities
-    .filter(liability => liability.term === 'SHORT_TERM')
-    .reduce((sum, liability) => sum + liability.currentBalance, 0);
+    .filter(liability => liability.tenure && liability.tenure.includes('year') && parseInt(liability.tenure) <= 1)
+    .reduce((sum, liability) => sum + liability.outstandingBalance, 0);
   
   const longTermDebt = liabilities
-    .filter(liability => liability.term === 'LONG_TERM')
-    .reduce((sum, liability) => sum + liability.currentBalance, 0);
+    .filter(liability => liability.tenure && liability.tenure.includes('year') && parseInt(liability.tenure) > 1)
+    .reduce((sum, liability) => sum + liability.outstandingBalance, 0);
   
-  const totalInterestRate = liabilities.reduce((sum, liability) => sum + liability.interestRate, 0);
+  const totalInterestRate = liabilities.reduce((sum, liability) => sum + (liability.interestRate || 0), 0);
   const averageInterestRate = liabilities.length > 0 ? totalInterestRate / liabilities.length : 0;
 
   return {
@@ -62,7 +62,7 @@ export const calculateBalanceSheet = (
 
   // Calculate asset totals
   const totalAssetValue = assets.reduce((sum, asset) => {
-    return sum + (asset.currentValue || asset.amount);
+    return sum + asset.currentValue;
   }, 0);
 
   // Calculate totals
@@ -71,7 +71,7 @@ export const calculateBalanceSheet = (
   const netWorth = totalAssets - totalLiabilities;
 
   // Categorize liabilities
-  const loans = liabilities.filter(l => ['LOAN', 'MORTGAGE', 'PERSONAL_LOAN', 'STUDENT_LOAN', 'CAR_LOAN'].includes(l.type));
+  const loans = liabilities.filter(l => ['MORTGAGE', 'PERSONAL_LOAN', 'STUDENT_LOAN', 'CAR_LOAN', 'GENERIC_LOAN'].includes(l.type));
   const creditCards = liabilities.filter(l => l.type === 'CREDIT_CARD');
   const payables = liabilities.filter(l => ['PAYABLE', 'COMMITTED_EXPENSE'].includes(l.type));
 
@@ -110,7 +110,7 @@ export const calculateLiabilityPayments = (
 } => {
   const liabilityPayments = payments.filter(p => p.liabilityId === liability.id);
   const totalPaid = liabilityPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const remainingBalance = liability.originalAmount - totalPaid;
+  const remainingBalance = liability.outstandingBalance - totalPaid;
 
   // Calculate next payment date (simplified - assumes monthly payments)
   const nextPaymentDate = liability.isActive ? 
@@ -127,25 +127,27 @@ export const calculateLiabilityPayments = (
 
 export const getLiabilityTypeDisplayName = (type: Liability['type']): string => {
   const typeMap: Record<Liability['type'], string> = {
-    'LOAN': 'Loan',
-    'CREDIT_CARD': 'Credit Card',
-    'PAYABLE': 'Payable',
-    'COMMITTED_EXPENSE': 'Committed Expense',
     'MORTGAGE': 'Mortgage',
+    'CAR_LOAN': 'Car Loan',
     'PERSONAL_LOAN': 'Personal Loan',
     'STUDENT_LOAN': 'Student Loan',
-    'CAR_LOAN': 'Car Loan',
+    'CREDIT_CARD': 'Credit Card',
+    'GENERIC_LOAN': 'Generic Loan',
+    'PAYABLE': 'Payable',
+    'COMMITTED_EXPENSE': 'Committed Expense',
     'OTHER': 'Other'
   };
   return typeMap[type] || type;
 };
 
-export const getLiabilityCategoryColor = (category: Liability['category']): string => {
-  return category === 'SECURED' ? 'text-green-600' : 'text-red-600';
+export const getLiabilitySecuredColor = (secured: boolean): string => {
+  return secured ? 'text-green-600' : 'text-red-600';
 };
 
-export const getLiabilityTermColor = (term: Liability['term']): string => {
-  return term === 'SHORT_TERM' ? 'text-orange-600' : 'text-blue-600';
+export const getLiabilityTermColor = (tenure?: string): string => {
+  if (!tenure) return 'text-gray-600';
+  const years = parseInt(tenure);
+  return years <= 1 ? 'text-orange-600' : 'text-blue-600';
 };
 
 export const formatLiabilityAmount = (amount: number, currency: string = 'INR'): string => {

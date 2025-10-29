@@ -93,11 +93,11 @@ const BalanceSheetSummary: React.FC<BalanceSheetSummaryProps> = ({
           <div className="space-y-2 mt-4">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Loans:</span>
-              <span className="font-medium">{formatAmount(balanceSheet.liabilities.loans.reduce((sum, loan) => sum + loan.currentBalance, 0))}</span>
+              <span className="font-medium">{formatAmount(balanceSheet.liabilities.loans.reduce((sum, loan) => sum + loan.outstandingBalance, 0))}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Credit Cards:</span>
-              <span className="font-medium">{formatAmount(balanceSheet.liabilities.creditCards.reduce((sum, card) => sum + card.currentBalance, 0))}</span>
+              <span className="font-medium">{formatAmount(balanceSheet.liabilities.creditCards.reduce((sum, card) => sum + card.outstandingBalance, 0))}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Other:</span>

@@ -36,8 +36,11 @@ const ComprehensiveAssetsView: React.FC<ComprehensiveAssetsViewProps> = ({
   const totalStockGainLoss = totalStockValue - totalStockCost;
   const totalStockGainLossPercent = totalStockCost > 0 ? (totalStockGainLoss / totalStockCost) * 100 : 0;
 
-  const totalAssetValue = assets.reduce((sum, asset) => sum + (asset.currentValue || asset.amount), 0);
-  const totalAssetCost = assets.reduce((sum, asset) => sum + asset.amount, 0);
+  const totalAssetValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+  const totalAssetCost = assets.reduce((sum, asset) => {
+    // Use appropriate cost field based on asset type
+    return sum + (asset.principalAmount || asset.monthlyDepositAmount || asset.faceValue || asset.purchasePrice || asset.currentValue || 0);
+  }, 0);
   const totalAssetGainLoss = totalAssetValue - totalAssetCost;
   const totalAssetGainLossPercent = totalAssetCost > 0 ? (totalAssetGainLoss / totalAssetCost) * 100 : 0;
 

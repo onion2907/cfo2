@@ -46,7 +46,7 @@ const LiabilitiesTable: React.FC<LiabilitiesTableProps> = ({
 
 
   const getRemainingPercentage = (liability: Liability) => {
-    return (liability.currentBalance / liability.originalAmount) * 100;
+    return (liability.outstandingBalance / liability.outstandingBalance) * 100;
   };
 
   if (liabilities.length === 0) {
@@ -127,9 +127,9 @@ const LiabilitiesTable: React.FC<LiabilitiesTableProps> = ({
                       <div className="text-sm font-medium text-gray-900">
                         {liability.name}
                       </div>
-                      {liability.lender && (
+                      {liability.lenderName && (
                         <div className="text-sm text-gray-500">
-                          {liability.lender}
+                          {liability.lenderName}
                         </div>
                       )}
                     </div>
@@ -142,29 +142,29 @@ const LiabilitiesTable: React.FC<LiabilitiesTableProps> = ({
                     </span>
                     <div className="flex space-x-2">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        liability.category === 'SECURED' 
+                        liability.secured === true 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {liability.category}
+                        {liability.secured ? 'SECURED' : 'UNSECURED'}
                       </span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        liability.term === 'SHORT_TERM' 
+                        liability.tenure && liability.tenure.includes('year') && parseInt(liability.tenure) <= 1
                           ? 'bg-orange-100 text-orange-800' 
                           : 'bg-blue-100 text-blue-800'
                       }`}>
-                        {liability.term === 'SHORT_TERM' ? 'Short Term' : 'Long Term'}
+                        {liability.tenure ? (liability.tenure.includes('year') && parseInt(liability.tenure) <= 1 ? 'Short Term' : 'Long Term') : 'Unknown'}
                       </span>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatAmount(liability.originalAmount)}
+                  {formatAmount(liability.outstandingBalance)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-gray-900">
-                      {formatAmount(liability.currentBalance)}
+                      {formatAmount(liability.outstandingBalance)}
                     </span>
                     <div className="flex items-center mt-1">
                       <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
@@ -180,10 +180,10 @@ const LiabilitiesTable: React.FC<LiabilitiesTableProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatPercentage(liability.interestRate)}
+                  {formatPercentage(liability.interestRate || 0)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatAmount(liability.monthlyPayment)}
+                  {formatAmount(liability.emiAmount || 0)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
