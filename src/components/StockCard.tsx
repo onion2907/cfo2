@@ -1,7 +1,7 @@
 import React from 'react';
 import { Stock } from '../types/portfolio';
 import { Edit2, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
-import { formatCurrency, getCurrencySymbol } from '../utils/currency';
+import { formatCurrency } from '../utils/currency';
 
 interface StockCardProps {
   stock: Stock;
