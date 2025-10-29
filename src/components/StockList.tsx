@@ -9,10 +9,9 @@ interface StockListProps {
   stocks: (Stock | ConvertedStock)[];
   onUpdateStock: (id: string, updatedStock: Partial<Stock>) => void;
   onRemoveStock: (id: string) => void;
-  displayCurrency?: string;
 }
 
-const StockList: React.FC<StockListProps> = ({ stocks, onUpdateStock, onRemoveStock, displayCurrency }) => {
+const StockList: React.FC<StockListProps> = ({ stocks, onUpdateStock, onRemoveStock }) => {
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
 
   const handleEdit = (stock: Stock | ConvertedStock) => {
