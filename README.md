@@ -1,116 +1,192 @@
-# Stock Portfolio Tracker
+# 📈 Stock Portfolio Tracker
 
-A modern, responsive web application for tracking your stock holdings and portfolio performance. Built with React, TypeScript, and Tailwind CSS.
+A modern, responsive web application for tracking your stock portfolio with comprehensive holdings statement and transaction management.
 
-## Features
+## ✨ Features
 
-- 📊 **Portfolio Overview**: View total portfolio value, gains/losses, and day changes
-- 📈 **Stock Management**: Add, edit, and remove individual stock holdings
-- 💰 **Real-time Calculations**: Automatic calculation of portfolio metrics and individual stock performance
-- 💾 **Data Persistence**: Your portfolio data is saved locally in your browser
-- 📱 **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
-- 🎨 **Modern UI**: Clean, intuitive interface with beautiful animations and transitions
+### 🏦 Holdings Statement
+- **Cumulative Position Tracking**: View your total holdings across all transactions
+- **Professional Table Layout**: Clean, organized display similar to brokerage statements
+- **Real-time Calculations**: Automatic profit/loss calculations and percentages
 
-## Getting Started
+### 💱 Multi-Currency Support
+- **Live Exchange Rates**: Real-time currency conversion using Alpha Vantage API
+- **Fallback Rates**: Static rates when API limits are reached
+- **Multiple Display Currencies**: View portfolio in USD, INR, EUR, GBP, and more
+- **Proper Currency Formatting**: Correct symbols and locale-specific formatting
+
+### 📊 Transaction Management
+- **Buy/Sell Transactions**: Complete transaction history tracking
+- **Stock Search**: Real-time stock search with auto-population
+- **Transaction Editing**: Full CRUD operations for all transactions
+- **Tabbed Interface**: Separate views for holdings and transaction history
+
+### 🎨 Modern UI/UX
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Dark/Light Theme**: Clean, professional interface
+- **Real-time Updates**: Live data refresh and currency conversion
+- **Intuitive Navigation**: Easy-to-use tabbed interface
+
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Node.js (version 16 or higher)
-- npm or yarn package manager
+- Node.js 18+ 
+- npm or yarn
+- Alpha Vantage API key (free at [alphavantage.co](https://www.alphavantage.co/support/#api-key))
 
 ### Installation
 
-1. Navigate to the project directory:
+1. **Clone the repository**
    ```bash
-   cd /Users/ajinkyaganoje/cfo2
+   git clone https://github.com/onion2907/cfo2.git
+   cd cfo2
    ```
 
-2. Install dependencies:
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-3. Start the development server:
+3. **Set up environment variables**
+   ```bash
+   # Create .env file
+   echo "VITE_ALPHA_VANTAGE_API_KEY=your_api_key_here" > .env
+   ```
+
+4. **Start development server**
    ```bash
    npm run dev
    ```
 
-4. Open your browser and navigate to `http://localhost:3000`
+5. **Open in browser**
+   ```
+   http://localhost:3000
+   ```
 
-### Building for Production
+## 🌐 Deployment
 
-To create a production build:
+### Railway (Recommended)
 
-```bash
-npm run build
-```
+1. **Connect to GitHub**
+   - Go to [Railway.app](https://railway.app)
+   - Click "New Project"
+   - Select "Deploy from GitHub repo"
+   - Choose this repository
 
-The built files will be in the `dist` directory.
+2. **Set Environment Variables**
+   - `ALPHA_VANTAGE_API_KEY`: Your Alpha Vantage API key
+   - `PORT`: 3000 (optional, Railway auto-assigns)
 
-## Usage
+3. **Deploy**
+   - Railway will automatically build and deploy
+   - Your app will be live at the provided URL
 
-### Adding Stocks
+### Other Platforms
 
-1. Click the "Add Stock" button in the header
-2. Fill in the required information:
-   - Stock Symbol (e.g., AAPL)
-   - Company Name (e.g., Apple Inc.)
-   - Number of Shares
-   - Purchase Price per Share
-   - Current Price per Share
-   - Purchase Date
-3. Click "Add Stock" to save
+- **Vercel**: `vercel --prod`
+- **Netlify**: Connect GitHub repo and deploy
+- **Heroku**: `git push heroku main`
 
-### Managing Your Portfolio
+## 📱 Usage
 
-- **View Portfolio Summary**: See total value, gains/losses, and day changes at the top
-- **Edit Stocks**: Click the edit icon on any stock card to modify details
-- **Remove Stocks**: Click the trash icon to remove a stock from your portfolio
-- **Track Performance**: Each stock card shows current value, cost basis, and gain/loss
+### Adding Transactions
+1. Click **"Add Transaction"** button
+2. Search for stock symbol (e.g., "AAPL", "RELIANCE")
+3. Select transaction type (Buy/Sell)
+4. Enter quantity and price
+5. Save transaction
 
-### Data Storage
+### Viewing Holdings
+1. **Holdings Tab**: See cumulative position summary
+2. **Transactions Tab**: View all individual transactions
+3. **Currency Selector**: Change display currency
+4. **Refresh Button**: Update exchange rates
 
-Your portfolio data is automatically saved to your browser's local storage, so it persists between sessions. No data is sent to external servers.
+### Managing Portfolio
+- **Edit Transactions**: Click edit icon on any transaction
+- **Delete Transactions**: Click delete icon to remove
+- **View Details**: Click on holdings to see related transactions
 
-## Technology Stack
+## 🛠️ Technical Stack
 
-- **React 18**: Modern React with hooks
-- **TypeScript**: Type-safe JavaScript
-- **Tailwind CSS**: Utility-first CSS framework
-- **Vite**: Fast build tool and development server
-- **Lucide React**: Beautiful icon library
+- **Frontend**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **State Management**: React Hooks
+- **API Integration**: Alpha Vantage API
+- **Deployment**: Railway
+- **Version Control**: Git + GitHub
 
-## Project Structure
+## 📊 API Integration
 
+### Alpha Vantage API
+- **Stock Search**: Symbol search and company information
+- **Real-time Quotes**: Current stock prices
+- **Exchange Rates**: Live currency conversion
+- **Rate Limiting**: 25 requests/day (free tier)
+
+### Fallback System
+- **Static Exchange Rates**: When API limits are reached
+- **User Notifications**: Clear warnings about fallback usage
+- **Seamless Experience**: App continues working with approximate rates
+
+## 🔧 Development
+
+### Project Structure
 ```
 src/
-├── components/
-│   ├── AddStockModal.tsx    # Modal for adding new stocks
-│   ├── EditStockModal.tsx   # Modal for editing existing stocks
-│   ├── PortfolioSummary.tsx # Portfolio overview cards
-│   ├── StockCard.tsx        # Individual stock display card
-│   └── StockList.tsx        # List of all stocks
-├── types/
-│   └── portfolio.ts         # TypeScript type definitions
-├── App.tsx                  # Main application component
-├── main.tsx                 # Application entry point
-└── index.css                # Global styles and Tailwind imports
+├── components/          # React components
+│   ├── HoldingsTable.tsx
+│   ├── TransactionsTable.tsx
+│   ├── TransactionModal.tsx
+│   └── ...
+├── hooks/              # Custom React hooks
+│   ├── useStockSearch.ts
+│   └── useCurrencyConversion.ts
+├── services/           # API services
+│   ├── alphaVantageApi.ts
+│   ├── currencyConversion.ts
+│   └── fallbackExchangeRates.ts
+├── utils/              # Utility functions
+│   ├── currency.ts
+│   └── portfolioCalculations.ts
+└── types/              # TypeScript interfaces
+    └── portfolio.ts
 ```
 
-## Future Enhancements
+### Available Scripts
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run type-check` - Run TypeScript checks
 
-- Real-time stock price updates via API integration
-- Historical performance charts
-- Portfolio diversification analysis
-- Export/import functionality
-- Multiple portfolio support
-- Watchlist feature
-- Dividend tracking
+## 🤝 Contributing
 
-## Contributing
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Feel free to submit issues and enhancement requests!
+## 📄 License
 
-## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This project is open source and available under the MIT License.
+## 🙏 Acknowledgments
+
+- [Alpha Vantage](https://www.alphavantage.co/) for financial data API
+- [Railway](https://railway.app/) for hosting platform
+- [Tailwind CSS](https://tailwindcss.com/) for styling framework
+- [React](https://reactjs.org/) for the frontend framework
+
+## 📞 Support
+
+If you have any questions or need help:
+
+1. **Check the Issues**: Look for existing solutions
+2. **Create an Issue**: Describe your problem
+3. **Contact**: Reach out via GitHub discussions
+
+---
+
+**Happy Trading! 📈🚀**
