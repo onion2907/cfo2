@@ -1,17 +1,15 @@
 import React from 'react';
 import { PortfolioMetrics } from '../types/portfolio';
 import { TrendingUp, TrendingDown, DollarSign, Percent } from 'lucide-react';
+import { formatCurrency } from '../utils/currency';
 
 interface PortfolioSummaryProps {
   metrics: PortfolioMetrics;
 }
 
 const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ metrics }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+  const formatAmount = (amount: number) => {
+    return formatCurrency(amount, 'USD'); // Portfolio summary in USD for now
   };
 
   const formatPercentage = (percentage: number) => {
@@ -26,7 +24,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ metrics }) => {
           <div>
             <p className="text-sm font-medium text-gray-600">Total Value</p>
             <p className="text-2xl font-bold text-gray-900">
-              {formatCurrency(metrics.totalValue)}
+              {formatAmount(metrics.totalValue)}
             </p>
           </div>
           <div className="p-3 bg-primary-100 rounded-full">
@@ -43,7 +41,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ metrics }) => {
             <p className={`text-2xl font-bold ${
               metrics.totalGainLoss >= 0 ? 'text-success-600' : 'text-danger-600'
             }`}>
-              {formatCurrency(metrics.totalGainLoss)}
+              {formatAmount(metrics.totalGainLoss)}
             </p>
             <p className={`text-sm ${
               metrics.totalGainLossPercentage >= 0 ? 'text-success-600' : 'text-danger-600'
@@ -71,7 +69,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ metrics }) => {
             <p className={`text-2xl font-bold ${
               metrics.dayChange >= 0 ? 'text-success-600' : 'text-danger-600'
             }`}>
-              {formatCurrency(metrics.dayChange)}
+              {formatAmount(metrics.dayChange)}
             </p>
             <p className={`text-sm ${
               metrics.dayChangePercentage >= 0 ? 'text-success-600' : 'text-danger-600'
@@ -97,7 +95,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ metrics }) => {
           <div>
             <p className="text-sm font-medium text-gray-600">Total Cost</p>
             <p className="text-2xl font-bold text-gray-900">
-              {formatCurrency(metrics.totalCost)}
+              {formatAmount(metrics.totalCost)}
             </p>
           </div>
           <div className="p-3 bg-gray-100 rounded-full">

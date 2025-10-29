@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { useStockSearch } from '../hooks/useStockSearch';
+import { formatCurrency, getCurrencySymbol } from '../utils/currency';
 
 interface AddStockModalV2Props {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface AddStockModalV2Props {
     purchasePrice: number;
     currentPrice: number;
     purchaseDate: string;
+    currency: string;
   }) => void;
 }
 
@@ -103,7 +105,8 @@ const AddStockModalV2: React.FC<AddStockModalV2Props> = ({ isOpen, onClose, onAd
         shares: Number(formData.shares),
         purchasePrice: Number(formData.purchasePrice),
         currentPrice: stockQuote.price,
-        purchaseDate: formData.purchaseDate
+        purchaseDate: formData.purchaseDate,
+        currency: stockQuote.currency
       });
       
       // Reset form
@@ -203,7 +206,7 @@ const AddStockModalV2: React.FC<AddStockModalV2Props> = ({ isOpen, onClose, onAd
                   {stockQuote && (
                     <div className="text-right">
                       <div className="font-semibold text-gray-900">
-                        ${stockQuote.price.toFixed(2)}
+                        {formatCurrency(stockQuote.price, stockQuote.currency)}
                       </div>
                       <div className={`text-sm flex items-center ${
                         stockQuote.change >= 0 ? 'text-success-600' : 'text-danger-600'
@@ -268,7 +271,7 @@ const AddStockModalV2: React.FC<AddStockModalV2Props> = ({ isOpen, onClose, onAd
             />
             {stockQuote && (
               <p className="mt-1 text-xs text-gray-500">
-                Current price: ${stockQuote.price.toFixed(2)}
+                Current price: {formatCurrency(stockQuote.price, stockQuote.currency)}
               </p>
             )}
             {errors.purchasePrice && (

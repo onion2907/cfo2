@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stock } from '../types/portfolio';
 import { Edit2, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import { formatCurrency, getCurrencySymbol } from '../utils/currency';
 
 interface StockCardProps {
   stock: Stock;
@@ -14,11 +15,8 @@ const StockCard: React.FC<StockCardProps> = ({ stock, onEdit, onRemove }) => {
   const gainLoss = currentValue - costBasis;
   const gainLossPercentage = (gainLoss / costBasis) * 100;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+  const formatAmount = (amount: number) => {
+    return formatCurrency(amount, stock.currency);
   };
 
   const formatPercentage = (percentage: number) => {
@@ -68,12 +66,12 @@ const StockCard: React.FC<StockCardProps> = ({ stock, onEdit, onRemove }) => {
         
         <div className="flex justify-between">
           <span className="text-sm text-gray-600">Purchase Price</span>
-          <span className="text-sm font-medium">{formatCurrency(stock.purchasePrice)}</span>
+          <span className="text-sm font-medium">{formatAmount(stock.purchasePrice)}</span>
         </div>
         
         <div className="flex justify-between">
           <span className="text-sm text-gray-600">Current Price</span>
-          <span className="text-sm font-medium">{formatCurrency(stock.currentPrice)}</span>
+          <span className="text-sm font-medium">{formatAmount(stock.currentPrice)}</span>
         </div>
         
         <div className="flex justify-between">
@@ -89,12 +87,12 @@ const StockCard: React.FC<StockCardProps> = ({ stock, onEdit, onRemove }) => {
       <div className="space-y-3">
         <div className="flex justify-between">
           <span className="text-sm text-gray-600">Current Value</span>
-          <span className="text-sm font-semibold">{formatCurrency(currentValue)}</span>
+          <span className="text-sm font-semibold">{formatAmount(currentValue)}</span>
         </div>
         
         <div className="flex justify-between">
           <span className="text-sm text-gray-600">Cost Basis</span>
-          <span className="text-sm font-medium">{formatCurrency(costBasis)}</span>
+          <span className="text-sm font-medium">{formatAmount(costBasis)}</span>
         </div>
         
         <div className="flex justify-between items-center">
@@ -109,7 +107,7 @@ const StockCard: React.FC<StockCardProps> = ({ stock, onEdit, onRemove }) => {
               <div className={`text-sm font-semibold ${
                 gainLoss >= 0 ? 'text-success-600' : 'text-danger-600'
               }`}>
-                {formatCurrency(gainLoss)}
+                {formatAmount(gainLoss)}
               </div>
               <div className={`text-xs ${
                 gainLossPercentage >= 0 ? 'text-success-600' : 'text-danger-600'
