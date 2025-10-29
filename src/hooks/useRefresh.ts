@@ -45,8 +45,23 @@ export const useRefresh = (): UseRefreshReturn => {
       
       console.log(`Successfully refreshed ${successfulRefreshes.length} out of ${symbols.length} stocks`);
 
-      // Recalculate holdings and metrics
+      // Recalculate holdings with updated prices
       const holdings = calculateHoldingsFromTransactions(transactions);
+      
+      // Update holdings with fresh quotes
+      holdings.forEach(holding => {
+        const freshQuote = successfulRefreshes.find(r => r?.symbol === holding.symbol)?.quote;
+        if (freshQuote) {
+          holding.lastTradedPrice = freshQuote.currentPrice;
+          holding.currentValue = holding.totalQuantity * freshQuote.currentPrice;
+          holding.profitLoss = holding.currentValue - (holding.totalQuantity * holding.averageCost);
+          holding.profitLossPercent = holding.averageCost > 0 ? (holding.profitLoss / (holding.totalQuantity * holding.averageCost)) * 100 : 0;
+          holding.dayChange = freshQuote.change;
+          holding.dayChangePercent = freshQuote.changePercent;
+          console.log(`Updated ${holding.symbol} LTP: ${holding.lastTradedPrice}, Current Value: ${holding.currentValue}`);
+        }
+      });
+      
       const metrics = calculatePortfolioMetrics(holdings);
 
       setLastRefreshTime(new Date());

@@ -13,7 +13,7 @@ export const calculateHoldingsFromTransactions = (transactions: Transaction[]): 
         name: transaction.name,
         totalQuantity: 0,
         averageCost: 0,
-        lastTradedPrice: transaction.price,
+        lastTradedPrice: 0, // Will be updated with real-time price
         currentValue: 0,
         profitLoss: 0,
         profitLossPercent: 0,
@@ -42,8 +42,7 @@ export const calculateHoldingsFromTransactions = (transactions: Transaction[]): 
       }
     }
 
-    // Update last traded price
-    holding.lastTradedPrice = transaction.price;
+    // Don't update lastTradedPrice here - it should be fetched from API
   });
 
   // Filter out holdings with zero quantity
@@ -82,6 +81,22 @@ export const calculatePortfolioMetrics = (holdings: Holding[]): PortfolioMetrics
     dayChange,
     dayChangePercentage
   };
+};
+
+export const updateHoldingsWithCurrentPrices = (holdings: Holding[], currentPrices: Map<string, number>): Holding[] => {
+  return holdings.map(holding => {
+    const currentPrice = currentPrices.get(holding.symbol);
+    if (currentPrice && currentPrice > 0) {
+      const updatedHolding = { ...holding };
+      updatedHolding.lastTradedPrice = currentPrice;
+      updatedHolding.currentValue = updatedHolding.totalQuantity * currentPrice;
+      updatedHolding.profitLoss = updatedHolding.currentValue - (updatedHolding.totalQuantity * updatedHolding.averageCost);
+      updatedHolding.profitLossPercent = updatedHolding.averageCost > 0 ? 
+        (updatedHolding.profitLoss / (updatedHolding.totalQuantity * updatedHolding.averageCost)) * 100 : 0;
+      return updatedHolding;
+    }
+    return holding;
+  });
 };
 
 export const migrateOldPortfolio = (oldStocks: any[]): { holdings: Holding[], transactions: Transaction[] } => {

@@ -11,6 +11,7 @@ import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOl
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
 import { formatCurrency } from './utils/currency';
 import { useRefresh } from './hooks/useRefresh';
+import { indianStockAPI } from './services/indianStockApi';
 import { Plus, TrendingUp, CreditCard, DollarSign, RefreshCw } from 'lucide-react';
 
 const STORAGE_KEY = 'stock-portfolio';
@@ -128,6 +129,59 @@ const App: React.FC = () => {
     const metrics = calculatePortfolioMetrics(holdings);
     setPortfolio(prev => ({ ...prev, holdings, metrics }));
   }, [portfolio.transactions]);
+
+  // Fetch current prices for holdings on initial load
+  useEffect(() => {
+    const fetchInitialPrices = async () => {
+      if (portfolio.holdings.length > 0) {
+        console.log('Fetching initial current prices for holdings...');
+        try {
+          const symbols = [...new Set(portfolio.holdings.map(h => h.symbol))];
+          const pricePromises = symbols.map(async (symbol) => {
+            try {
+              const quote = await indianStockAPI.getStockQuote(symbol);
+              return quote ? { symbol, price: quote.currentPrice } : null;
+            } catch (error) {
+              console.error(`Error fetching price for ${symbol}:`, error);
+              return null;
+            }
+          });
+
+          const priceResults = await Promise.all(pricePromises);
+          const currentPrices = new Map(
+            priceResults
+              .filter(result => result !== null)
+              .map(result => [result!.symbol, result!.price])
+          );
+
+          if (currentPrices.size > 0) {
+            const updatedHoldings = portfolio.holdings.map(holding => {
+              const currentPrice = currentPrices.get(holding.symbol);
+              if (currentPrice && currentPrice > 0) {
+                return {
+                  ...holding,
+                  lastTradedPrice: currentPrice,
+                  currentValue: holding.totalQuantity * currentPrice,
+                  profitLoss: (holding.totalQuantity * currentPrice) - (holding.totalQuantity * holding.averageCost),
+                  profitLossPercent: holding.averageCost > 0 ? 
+                    (((holding.totalQuantity * currentPrice) - (holding.totalQuantity * holding.averageCost)) / (holding.totalQuantity * holding.averageCost)) * 100 : 0
+                };
+              }
+              return holding;
+            });
+
+            const updatedMetrics = calculatePortfolioMetrics(updatedHoldings);
+            setPortfolio(prev => ({ ...prev, holdings: updatedHoldings, metrics: updatedMetrics }));
+            console.log('Initial prices fetched and holdings updated');
+          }
+        } catch (error) {
+          console.error('Error fetching initial prices:', error);
+        }
+      }
+    };
+
+    fetchInitialPrices();
+  }, []); // Only run once on mount
 
   // Calculate balance sheet
   const balanceSheet = calculateBalanceSheet(
