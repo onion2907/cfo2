@@ -172,7 +172,6 @@ const App: React.FC = () => {
               stocks={convertedPortfolio.stocks}
               onUpdateStock={updateStock}
               onRemoveStock={removeStock}
-              displayCurrency={convertedPortfolio.displayCurrency}
             />
           </>
         ) : (
