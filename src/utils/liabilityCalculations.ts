@@ -61,9 +61,9 @@ export const calculateBalanceSheet = (
   const liabilityMetrics = calculateLiabilityMetrics(liabilities);
 
   // Calculate asset totals
-  const totalAssetValue = assets.reduce((sum, asset) => {
-    return sum + asset.currentValue;
-  }, 0);
+  const totalAssetValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
+
+  // Derive investment/cost for non-stock assets used in balance sheet totals if needed later
 
   // Calculate totals
   const totalAssets = totalStockValue + cash + otherAssets + totalAssetValue;

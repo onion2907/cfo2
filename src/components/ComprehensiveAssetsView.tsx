@@ -38,8 +38,14 @@ const ComprehensiveAssetsView: React.FC<ComprehensiveAssetsViewProps> = ({
 
   const totalAssetValue = assets.reduce((sum, asset) => sum + asset.currentValue, 0);
   const totalAssetCost = assets.reduce((sum, asset) => {
-    // Use appropriate cost field based on asset type
-    return sum + (asset.principalAmount || asset.monthlyDepositAmount || asset.faceValue || asset.purchasePrice || asset.currentValue || 0);
+    // Metals: purchaseRate * quantity; fallback to general fields
+    let cost = 0;
+    if ((asset.type === 'GOLD' || asset.type === 'SILVER') && typeof asset.purchaseRate === 'number' && typeof asset.quantity === 'number') {
+      cost = asset.purchaseRate * asset.quantity;
+    } else {
+      cost = asset.principalAmount || asset.monthlyDepositAmount || asset.faceValue || asset.purchasePrice || asset.currentValue || 0;
+    }
+    return sum + cost;
   }, 0);
   const totalAssetGainLoss = totalAssetValue - totalAssetCost;
   const totalAssetGainLossPercent = totalAssetCost > 0 ? (totalAssetGainLoss / totalAssetCost) * 100 : 0;
