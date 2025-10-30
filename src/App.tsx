@@ -12,7 +12,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
 import { useRefresh } from './hooks/useRefresh';
-import { getGoldInrPerGram } from './services/metalPriceApi';
+import { getGoldInrPerGram, getSilverInrPerGram } from './services/metalPriceApi';
 // import { indianStockAPI } from './services/indianStockApi'; // Removed as not used directly in App.tsx
 import { Plus, TrendingUp, CreditCard, DollarSign, RefreshCw } from 'lucide-react';
 
@@ -408,19 +408,26 @@ const App: React.FC = () => {
       // Then refresh portfolio with fresh data
       const { holdings, metrics } = await refreshPortfolio(portfolio.transactions);
       
-      // Update GOLD asset values using metal price API (XAU in USD -> INR per gram)
+      // Update GOLD and SILVER asset values using metal price API (XAU/XAG in USD -> INR per gram)
       let updatedAssets = portfolio.assets;
       try {
-        const inrPerGram = await getGoldInrPerGram();
+        const [goldInrPerGram, silverInrPerGram] = await Promise.all([
+          getGoldInrPerGram(),
+          getSilverInrPerGram()
+        ]);
         const nowIso = new Date().toISOString();
         updatedAssets = portfolio.assets.map(a => {
           if (a.type === 'GOLD' && typeof a.quantity === 'number' && a.quantity > 0) {
-            const currentValue = Number((a.quantity * inrPerGram).toFixed(2));
+            const currentValue = Number((a.quantity * goldInrPerGram).toFixed(2));
+            return { ...a, currentValue, lastUpdated: nowIso };
+          }
+          if (a.type === 'SILVER' && typeof a.quantity === 'number' && a.quantity > 0) {
+            const currentValue = Number((a.quantity * silverInrPerGram).toFixed(2));
             return { ...a, currentValue, lastUpdated: nowIso };
           }
           return a;
         });
-        console.log('Updated GOLD assets with INR/gram:', inrPerGram);
+        console.log('Updated GOLD INR/gram:', goldInrPerGram, 'SILVER INR/gram:', silverInrPerGram);
       } catch (e) {
         console.warn('Gold price refresh failed, keeping previous values.', e);
       }

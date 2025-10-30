@@ -1,11 +1,11 @@
 // Simple metals pricing + FX helpers
 
-const GOLD_PRICE_URL = 'https://api.gold-api.com/price/XAU';
+const BASE_PRICE_URL = 'https://api.gold-api.com/price';
 const USD_INR_URL = 'https://api.exchangerate.host/latest?base=USD&symbols=INR';
 
 const TROY_OUNCE_TO_GRAMS = 31.1034768;
 
-export interface GoldPriceResponse {
+export interface PriceResponse {
   name: string;
   price: number; // USD per troy ounce
   symbol: string; // XAU
@@ -20,9 +20,10 @@ async function fetchJson<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function getGoldUsdPerOunce(): Promise<number> {
-  const data = await fetchJson<GoldPriceResponse>(GOLD_PRICE_URL);
-  return data.price; // USD per troy ounce
+export async function getUsdPrice(symbol: 'XAU' | 'XAG' | 'BTC' | 'ETH'): Promise<number> {
+  const url = `${BASE_PRICE_URL}/${symbol}`;
+  const data = await fetchJson<PriceResponse>(url);
+  return data.price;
 }
 
 export async function getUsdInrRate(): Promise<number> {
@@ -31,10 +32,22 @@ export async function getUsdInrRate(): Promise<number> {
 }
 
 export async function getGoldInrPerGram(): Promise<number> {
-  const [usdPerOz, usdInr] = await Promise.all([getGoldUsdPerOunce(), getUsdInrRate()]);
+  const [usdPerOz, usdInr] = await Promise.all([getUsdPrice('XAU'), getUsdInrRate()]);
   const inrPerOz = usdPerOz * usdInr;
   const inrPerGram = inrPerOz / TROY_OUNCE_TO_GRAMS;
   return inrPerGram;
+}
+
+export async function getSilverInrPerGram(): Promise<number> {
+  const [usdPerOz, usdInr] = await Promise.all([getUsdPrice('XAG'), getUsdInrRate()]);
+  const inrPerOz = usdPerOz * usdInr;
+  const inrPerGram = inrPerOz / TROY_OUNCE_TO_GRAMS;
+  return inrPerGram;
+}
+
+export async function getCryptoInrPerUnit(symbol: 'BTC' | 'ETH'): Promise<number> {
+  const [usdPerUnit, usdInr] = await Promise.all([getUsdPrice(symbol), getUsdInrRate()]);
+  return usdPerUnit * usdInr;
 }
 
 
