@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Asset, AssetType } from '../types/portfolio';
+import { getGoldInrPerGram, getSilverInrPerGram } from '../services/metalPriceApi';
 
 interface AssetModalProps {
   isOpen: boolean;
@@ -100,6 +101,11 @@ const AssetModal: React.FC<AssetModalProps> = ({
     accountType: '',
     lastSyncDate: ''
   });
+
+  // Live INR/gram rates for auto-calculation
+  const [goldInrPerGram, setGoldInrPerGram] = useState<number | null>(null);
+  const [silverInrPerGram, setSilverInrPerGram] = useState<number | null>(null);
+  const [rateLoading, setRateLoading] = useState(false);
 
   useEffect(() => {
     if (editingAsset) {
@@ -235,16 +241,71 @@ const AssetModal: React.FC<AssetModalProps> = ({
     }
   }, [editingAsset, isOpen]);
 
+  // Fetch metal rates when needed
+  useEffect(() => {
+    const loadRate = async () => {
+      if (formData.type === 'GOLD' && goldInrPerGram == null) {
+        try {
+          setRateLoading(true);
+          const rate = await getGoldInrPerGram();
+          setGoldInrPerGram(rate);
+        } catch (e) {
+          // ignore, user can still enter manual value for non-metal types
+        } finally {
+          setRateLoading(false);
+        }
+      }
+      if (formData.type === 'SILVER' && silverInrPerGram == null) {
+        try {
+          setRateLoading(true);
+          const rate = await getSilverInrPerGram();
+          setSilverInrPerGram(rate);
+        } catch (e) {
+          // ignore
+        } finally {
+          setRateLoading(false);
+        }
+      }
+    };
+    if (isOpen) loadRate();
+  }, [formData.type, isOpen, goldInrPerGram, silverInrPerGram]);
+
+  // Auto-calc current value for GOLD/SILVER when quantity or rate changes
+  useEffect(() => {
+    const qty = parseFloat(formData.quantity || '');
+    if (!isNaN(qty) && qty > 0) {
+      if (formData.type === 'GOLD' && goldInrPerGram) {
+        const v = Number((qty * goldInrPerGram).toFixed(2));
+        setFormData(prev => ({ ...prev, currentValue: String(v) }));
+      }
+      if (formData.type === 'SILVER' && silverInrPerGram) {
+        const v = Number((qty * silverInrPerGram).toFixed(2));
+        setFormData(prev => ({ ...prev, currentValue: String(v) }));
+      }
+    }
+  }, [formData.type, formData.quantity, goldInrPerGram, silverInrPerGram]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.currentValue) {
+    // Validation: for GOLD/SILVER, require quantity; for others, require currentValue
+    const isMetal = formData.type === 'GOLD' || formData.type === 'SILVER';
+    if (!formData.name.trim()) {
+      return;
+    }
+    if (isMetal) {
+      if (!formData.quantity) {
+        return;
+      }
+    } else if (!formData.currentValue) {
       return;
     }
 
-    const currentValue = parseFloat(formData.currentValue);
-    if (isNaN(currentValue) || currentValue < 0) {
-      return;
+    const currentValue = parseFloat(formData.currentValue || '0');
+    if (!isMetal) {
+      if (isNaN(currentValue) || currentValue < 0) {
+        return;
+      }
     }
 
     const assetData: Omit<Asset, 'id'> = {
@@ -254,7 +315,7 @@ const AssetModal: React.FC<AssetModalProps> = ({
       description: formData.description.trim() || undefined,
       isActive: formData.isActive,
       lastUpdated: new Date().toISOString(),
-      currentValue: currentValue,
+      currentValue: isMetal ? parseFloat(formData.currentValue || '0') : currentValue,
       
       // Value fields
       principalAmount: formData.principalAmount ? parseFloat(formData.principalAmount) : undefined,
@@ -1386,22 +1447,34 @@ const AssetModal: React.FC<AssetModalProps> = ({
               />
             </div>
 
-            <div>
-              <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-1">
-                Current Value (₹) *
-              </label>
-              <input
-                type="number"
-                id="currentValue"
-                value={formData.currentValue}
-                onChange={(e) => setFormData(prev => ({ ...prev, currentValue: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
+            {formData.type === 'GOLD' || formData.type === 'SILVER' ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Value (₹)
+                </label>
+                <div className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-900">
+                  {rateLoading ? 'Fetching live rate…' : (formData.currentValue ? Number(formData.currentValue).toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) : '—')}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Auto-calculated from live INR/gram × quantity.</p>
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="currentValue" className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Value (₹) *
+                </label>
+                <input
+                  type="number"
+                  id="currentValue"
+                  value={formData.currentValue}
+                  onChange={(e) => setFormData(prev => ({ ...prev, currentValue: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Type-specific Fields */}
