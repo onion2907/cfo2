@@ -1,7 +1,8 @@
 // Simple metals pricing + FX helpers
 
-const BASE_PRICE_URL = 'https://api.gold-api.com/price';
-const USD_INR_URL = 'https://api.exchangerate.host/latest?base=USD&symbols=INR';
+// Use backend proxy to avoid browser CORS issues
+const BASE_PRICE_URL = '/api/metal';
+const USD_INR_URL = '/api/fx/usd-inr';
 
 const TROY_OUNCE_TO_GRAMS = 31.1034768;
 
