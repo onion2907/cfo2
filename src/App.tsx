@@ -12,6 +12,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
 import { useRefresh } from './hooks/useRefresh';
+import { getGoldInrPerGram } from './services/metalPriceApi';
 // import { indianStockAPI } from './services/indianStockApi'; // Removed as not used directly in App.tsx
 import { Plus, TrendingUp, CreditCard, DollarSign, RefreshCw } from 'lucide-react';
 
@@ -407,11 +408,29 @@ const App: React.FC = () => {
       // Then refresh portfolio with fresh data
       const { holdings, metrics } = await refreshPortfolio(portfolio.transactions);
       
-      // Update portfolio with fresh holdings and metrics
+      // Update GOLD asset values using metal price API (XAU in USD -> INR per gram)
+      let updatedAssets = portfolio.assets;
+      try {
+        const inrPerGram = await getGoldInrPerGram();
+        const nowIso = new Date().toISOString();
+        updatedAssets = portfolio.assets.map(a => {
+          if (a.type === 'GOLD' && typeof a.quantity === 'number' && a.quantity > 0) {
+            const currentValue = Number((a.quantity * inrPerGram).toFixed(2));
+            return { ...a, currentValue, lastUpdated: nowIso };
+          }
+          return a;
+        });
+        console.log('Updated GOLD assets with INR/gram:', inrPerGram);
+      } catch (e) {
+        console.warn('Gold price refresh failed, keeping previous values.', e);
+      }
+
+      // Update portfolio with fresh holdings, metrics, and assets
       setPortfolio(prev => ({
         ...prev,
         holdings,
         metrics,
+        assets: updatedAssets,
         lastRefreshTime: new Date().toISOString()
       }));
       
