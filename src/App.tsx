@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Portfolio, Transaction, Liability, Holding, Asset } from './types/portfolio';
 import PortfolioSummary from './components/PortfolioSummary';
 import LiabilitiesTable from './components/LiabilitiesTable';
@@ -12,7 +12,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { calculateHoldingsFromTransactions, calculatePortfolioMetrics, migrateOldPortfolio } from './utils/portfolioCalculations';
 import { calculateBalanceSheet } from './utils/liabilityCalculations';
 import { useRefresh } from './hooks/useRefresh';
-import { getGoldInrPerGram, getSilverInrPerGram } from './services/metalPriceApi';
+import { useBackgroundRefresh } from './hooks/useBackgroundRefresh';
 // import { indianStockAPI } from './services/indianStockApi'; // Removed as not used directly in App.tsx
 import { Plus, TrendingUp, CreditCard, DollarSign, RefreshCw } from 'lucide-react';
 
@@ -61,6 +61,16 @@ const App: React.FC = () => {
 
   // Focus on INR currency only
   const selectedCurrency = 'INR';
+
+  // Background refresh for metal prices and exchange rates (every 12 hours)
+  const {
+    goldInrPerGram: backgroundGoldPrice,
+    silverInrPerGram: backgroundSilverPrice,
+    usdInrRate: backgroundUsdInrRate,
+    lastUpdated: backgroundPricesLastUpdated,
+    isRefreshing: isBackgroundRefreshing,
+    refreshPrices: refreshBackgroundPrices
+  } = useBackgroundRefresh();
 
   // Refresh functionality
   const {
@@ -187,6 +197,66 @@ const App: React.FC = () => {
     const metrics = calculatePortfolioMetrics(holdings);
     setPortfolio(prev => ({ ...prev, holdings, metrics }));
   }, [portfolio.transactions]);
+
+  // Update gold and silver asset values when background prices are available or refresh
+  useEffect(() => {
+    // Only update if we have background prices and assets exist
+    if ((!backgroundGoldPrice && !backgroundSilverPrice) || portfolio.assets.length === 0) {
+      return;
+    }
+
+    // Check if we have gold/silver assets that need updating
+    const hasGoldSilverAssets = portfolio.assets.some(a => 
+      (a.type === 'GOLD' || a.type === 'SILVER') && 
+      typeof a.quantity === 'number' && 
+      a.quantity > 0
+    );
+
+    if (!hasGoldSilverAssets) {
+      return;
+    }
+
+    // Update assets with current background prices
+    const nowIso = new Date().toISOString();
+    let hasChanges = false;
+    
+    const updatedAssets = portfolio.assets.map(a => {
+      if (a.type === 'GOLD' && typeof a.quantity === 'number' && a.quantity > 0 && backgroundGoldPrice) {
+        const currentValue = Number((a.quantity * backgroundGoldPrice).toFixed(2));
+        if (Math.abs((a.currentValue || 0) - currentValue) > 0.01) { // Only update if change is significant
+          hasChanges = true;
+        }
+        return { ...a, currentValue, lastUpdated: nowIso };
+      }
+      if (a.type === 'SILVER' && typeof a.quantity === 'number' && a.quantity > 0 && backgroundSilverPrice) {
+        const currentValue = Number((a.quantity * backgroundSilverPrice).toFixed(2));
+        if (Math.abs((a.currentValue || 0) - currentValue) > 0.01) { // Only update if change is significant
+          hasChanges = true;
+        }
+        return { ...a, currentValue, lastUpdated: nowIso };
+      }
+      return a;
+    });
+
+    if (hasChanges) {
+      setPortfolio(prev => {
+        // Avoid unnecessary updates if assets haven't changed structurally
+        const assetIds = prev.assets.map(a => a.id).join(',');
+        const newAssetIds = updatedAssets.map(a => a.id).join(',');
+        if (assetIds === newAssetIds) {
+          // Only update if current values actually changed
+          const valuesChanged = prev.assets.some((oldAsset, idx) => {
+            const newAsset = updatedAssets[idx];
+            return oldAsset.currentValue !== newAsset.currentValue;
+          });
+          if (!valuesChanged) {
+            return prev;
+          }
+        }
+        return { ...prev, assets: updatedAssets };
+      });
+    }
+  }, [backgroundGoldPrice, backgroundSilverPrice, portfolio.assets.length]); // Update when background prices change or assets count changes
 
   // Check if data is stale (older than 1 hour)
   const checkDataStaleness = useCallback(() => {
@@ -405,39 +475,18 @@ const App: React.FC = () => {
       // Refresh all API data first
       await refreshAllData();
       
+      // Refresh background prices (metal prices and exchange rates)
+      await refreshBackgroundPrices();
+      
       // Then refresh portfolio with fresh data
       const { holdings, metrics } = await refreshPortfolio(portfolio.transactions);
       
-      // Update GOLD and SILVER asset values using metal price API (XAU/XAG in USD -> INR per gram)
-      let updatedAssets = portfolio.assets;
-      try {
-        const [goldInrPerGram, silverInrPerGram] = await Promise.all([
-          getGoldInrPerGram(),
-          getSilverInrPerGram()
-        ]);
-        const nowIso = new Date().toISOString();
-        updatedAssets = portfolio.assets.map(a => {
-          if (a.type === 'GOLD' && typeof a.quantity === 'number' && a.quantity > 0) {
-            const currentValue = Number((a.quantity * goldInrPerGram).toFixed(2));
-            return { ...a, currentValue, lastUpdated: nowIso };
-          }
-          if (a.type === 'SILVER' && typeof a.quantity === 'number' && a.quantity > 0) {
-            const currentValue = Number((a.quantity * silverInrPerGram).toFixed(2));
-            return { ...a, currentValue, lastUpdated: nowIso };
-          }
-          return a;
-        });
-        console.log('Updated GOLD INR/gram:', goldInrPerGram, 'SILVER INR/gram:', silverInrPerGram);
-      } catch (e) {
-        console.warn('Gold price refresh failed, keeping previous values.', e);
-      }
-
-      // Update portfolio with fresh holdings, metrics, and assets
+      // Assets will be automatically updated by the useEffect that watches background prices
+      // Update portfolio with fresh holdings and metrics
       setPortfolio(prev => ({
         ...prev,
         holdings,
         metrics,
-        assets: updatedAssets,
         lastRefreshTime: new Date().toISOString()
       }));
       

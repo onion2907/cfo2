@@ -70,9 +70,6 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
 
   const getCostValue = (asset: Asset) => {
     // Use appropriate cost field based on asset type
-    if ((asset.type === 'GOLD' || asset.type === 'SILVER') && typeof asset.purchaseRate === 'number' && typeof asset.quantity === 'number') {
-      return asset.purchaseRate * asset.quantity;
-    }
     return asset.principalAmount || asset.monthlyDepositAmount || asset.faceValue || asset.purchasePrice || asset.currentValue || 0;
   };
 
